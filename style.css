@@ -61,3 +61,21 @@ button:disabled {
 #teamButtons button {
   margin: 5px;
 }
+
+.team-timer {
+  position: fixed;
+  top: 12px;
+  right: 16px;
+  background: #fff3c4;
+  border: 3px solid #ffb703;
+  border-radius: 12px;
+  padding: 6px 14px;
+  font-weight: bold;
+  font-size: 16px;
+  box-shadow: 0 3px 0 #f4a261;
+}
+
+.hidden {
+  display: none;
+}
+
