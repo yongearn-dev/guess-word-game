@@ -18,37 +18,37 @@
 
   <h1>🎮 估字遊戲</h1>
 
- <!-- 遊戲類型 -->
-<label>遊戲類型</label>
-<select id="gameSelect">
-  <option value="imageGuess">看圖估字</option>
-</select>
-
-<!-- 語言 -->
-<div class="row">
-  <label>語言</label>
-  <select id="languageSelect">
-    <option value="">請選擇</option>
-    <option value="zh">中文</option>
-    <option value="th">ไทย</option>
+  <!-- 遊戲類型 -->
+  <label>遊戲類型</label>
+  <select id="gameSelect">
+    <option value="imageGuess">看圖估字</option>
   </select>
-</div>
 
-<!-- 內容群組（聖經 / 其他） -->
-<div class="row">
-  <label>內容群組</label>
-  <select id="groupSelect" disabled>
-    <option value="">請先選語言</option>
-  </select>
-</div>
+  <!-- 語言 -->
+  <div class="row">
+    <label>語言</label>
+    <select id="languageSelect">
+      <option value="">請選擇</option>
+      <option value="zh">中文</option>
+      <option value="th">ไทย</option>
+    </select>
+  </div>
 
-<!-- 題目分類（人物 / 地方 / 詞彙…） -->
-<div class="row">
-  <label>題目類型</label>
-  <select id="categorySelect" disabled>
-    <option value="">請先選分類</option>
-  </select>
-</div>
+  <!-- 內容群組（聖經 / 其他） -->
+  <div class="row">
+    <label>內容群組</label>
+    <select id="groupSelect" disabled>
+      <option value="">請先選語言</option>
+    </select>
+  </div>
+
+  <!-- 題目分類（人物 / 地方 / 詞彙…） -->
+  <div class="row">
+    <label>題目類型</label>
+    <select id="categorySelect" disabled>
+      <option value="">請先選分類</option>
+    </select>
+  </div>
 
   <!-- 組別 -->
   <label>組別數量</label>
@@ -60,23 +60,22 @@
   </select>
 
   <!-- 輪數 -->
-<label>遊戲輪數</label>
-<select id="roundCount">
-  <option value="1">1 輪</option>
-  <option value="2">2 輪</option>
-  <option value="3">3 輪</option>
-  <option value="4">4 輪</option>
-  <option value="5">5 輪</option>
-</select>
+  <label>遊戲輪數</label>
+  <select id="roundSelect">
+    <option value="1">1 輪</option>
+    <option value="2">2 輪</option>
+    <option value="3">3 輪</option>
+    <option value="4">4 輪</option>
+    <option value="5">5 輪</option>
+  </select>
 
-<!-- 每輪題數 -->
-<label>每輪題數</label>
-<select id="questionPerRound">
-  <option value="5">5 題</option>
-  <option value="10" selected>10 題</option>
-  <option value="15">15 題</option>
-</select>
-
+  <!-- 每輪題數 -->
+  <label>每輪題數</label>
+  <select id="qPerRoundSelect">
+    <option value="5">5 題</option>
+    <option value="10" selected>10 題</option>
+    <option value="15">15 題</option>
+  </select>
 
   <!-- 計時 -->
   <label>
@@ -85,6 +84,7 @@
   </label>
 
   <div id="timerOptions" class="hidden">
+
     <label>計時模式</label>
     <select id="timerMode">
       <option value="perQuestion">每題限時</option>
@@ -110,7 +110,6 @@
       </select>
     </div>
 
-    <div id="teamTimer" class="team-timer hidden"></div>
   </div>
 
   <!-- 音效 -->
@@ -125,18 +124,24 @@
 <!-- ================= 遊戲頁 ================= -->
 <div id="game" class="hidden">
 
+  <!-- 每組總時間（per team 模式） -->
+  <div id="teamTimer" class="team-timer hidden"></div>
+
+  <!-- 每題倒數 -->
   <div id="timerDisplay"></div>
 
   <h2 id="questionTitle"></h2>
 
+  <!-- 圖片題目 -->
   <div id="imageRow"></div>
 
   <button id="toggleAnswerBtn">顯示答案</button>
   <div id="answer" class="hidden"></div>
 
+  <!-- 組別加分 -->
   <div id="teamButtons"></div>
 
-  <button id="nextBtn" class="hidden">下一題</button>
+  <button id="nextBtn">下一題</button>
 
 </div>
 
