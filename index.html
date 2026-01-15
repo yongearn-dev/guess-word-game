@@ -31,24 +31,31 @@
     <option value="other">其他 อื่นๆ</option>
   </select>
 
-  <!-- 語言 -->
+ <!-- 語言 -->
+<div class="row">
   <label>語言</label>
   <select id="languageSelect">
+    <option value="">請選擇</option>
     <option value="zh">中文</option>
     <option value="th">ไทย</option>
   </select>
+</div>
 
-<!-- 分類 -->
-  <div class="row">
-    <label>分類：</label>
-    <select id="categorySelect">
-      <option value="all">全部</option>
-      <option value="bible">聖經</option>
-      <option value="people">人物</option>
-      <option value="place">地方</option>
-      <option value="vocab">詞彙</option>
-    </select>
-  </div>
+<!-- 大分類 -->
+<div class="row">
+  <label>分類</label>
+  <select id="groupSelect" disabled>
+    <option value="">請先選語言</option>
+  </select>
+</div>
+
+<!-- 子分類 -->
+<div class="row">
+  <label>題目類型</label>
+  <select id="categorySelect" disabled>
+    <option value="">請先選分類</option>
+  </select>
+</div>
 
   <!-- 組別 -->
   <label>組別數量</label>
