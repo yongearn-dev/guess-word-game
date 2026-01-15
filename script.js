@@ -221,25 +221,28 @@ fetch(SHEET_URL)
 /* ======================
    開始遊戲
 ====================== */
-startBtn.onclick = () => {
-  if (enableAudio.checked) {
-    unlockAudio();
-    bgm.play().catch(() => {});
+/* ======================
+   隊伍加分（每題每組一次）
+====================== */
+function renderTeams() {
+  teamButtons.innerHTML = "";
+
+  for (let i = 0; i < teamCount; i++) {
+    const btn = document.createElement("button");
+    btn.innerText = `第 ${i + 1} 組 ＋1（${teamScores[i]}）`;
+
+    if (scoredTeamsThisQuestion.has(i)) btn.disabled = true;
+
+    btn.onclick = () => {
+      if (scoredTeamsThisQuestion.has(i)) return;
+      teamScores[i]++;
+      scoredTeamsThisQuestion.add(i);
+      renderTeams();
+    };
+
+    teamButtons.appendChild(btn);
   }
-
-  teamCount = Number(teamSelect.value);
-  roundCount = Number(roundSelect.value);
-  questionsPerRound = Number(qPerRoundSelect.value);
-
-  teamScores = new Array(teamCount).fill(0);
-  usedQuestionIds.clear();
-  currentRound = 1;
-
-  setup.classList.add("hidden");
-  game.classList.remove("hidden");
-
-  startRound();
-};
+}
 
 /* ======================
    開始一輪
