@@ -1,6 +1,48 @@
 "use strict";
 
 /* ======================
+   Audio
+====================== */
+const bgm = document.getElementById("bgm");
+const sfxScore = document.getElementById("sfxScore");
+const sfxNext = document.getElementById("sfxNext");
+
+bgm.volume = 0.25;
+sfxScore.volume = 0.8;
+sfxNext.volume = 0.6;
+
+let audioUnlocked = false;
+
+function unlockAudio() {
+  if (audioUnlocked) return;
+
+  [bgm, sfxScore, sfxNext].forEach(a => {
+    if (!a) return;
+    a.muted = false;
+    a.play()
+      .then(() => {
+        a.pause(); 
+        a.currentTime = 0;
+      })
+      .catch(() => {});
+  });
+
+  audioUnlocked = true;
+}
+
+function playScoreSound() {
+  if (!enableAudio.checked) return;
+  sfxScore.currentTime = 0;
+  sfxScore.play().catch(() => {});
+}
+
+function playNextSound() {
+  if (!enableAudio.checked) return;
+  sfxNext.currentTime = 0;
+  sfxNext.play().catch(() => {});
+}
+
+/* ======================
    基本設定
 ====================== */
 const IMAGE_BASE =
@@ -167,6 +209,7 @@ fetch(SHEET_URL)
    開始遊戲
 ====================== */
 startBtn.onclick = () => {
+  // 1️⃣ 讀取設定
   teamCount = Number(teamSelect.value);
   roundCount = Number(roundSelect.value);
   questionsPerRound = Number(qPerRoundSelect.value);
@@ -175,11 +218,19 @@ startBtn.onclick = () => {
   usedQuestionIds.clear();
   currentRound = 1;
 
+  // 2️⃣ 進入遊戲畫面
   setup.classList.add("hidden");
   game.classList.remove("hidden");
 
+  // 3️⃣ unlock audio（Safari / Chrome）
+  if (enableAudio.checked) {
+    unlockAudio();
+    bgm.play().catch(() => {});
+  }
+   
+  // 4️⃣ 開始第一輪
   startRound();
-};
+}; 
 
 /* ======================
    開始一輪
