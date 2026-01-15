@@ -1,15 +1,17 @@
 "use strict";
-// ======================
-// 基本設定
-// ======================
+
+/* ======================
+   基本設定
+====================== */
 const IMAGE_BASE =
   "https://yongearn-dev.github.io/guess-word-game/images/";
 
 const SHEET_URL =
   "https://opensheet.elk.sh/1nmgda-PSW0qNpEnT65HozbrbK4SPoOlfq3WlEIQSgf4/Sheet1";
-// ======================
-// 狀態
-// ======================
+
+/* ======================
+   狀態
+====================== */
 let allQuestions = [];
 let usedQuestionIds = new Set();
 
@@ -18,50 +20,152 @@ let currentQuestionIndex = 0;
 
 let teamCount = 1;
 let teamScores = [];
+let scoredTeamsThisQuestion = new Set();
 
 let roundCount = 1;
 let questionsPerRound = 5;
 let currentRound = 1;
 
-// 記錄：今題已加分的組
-let scoredTeamsThisQuestion = new Set();
-// ======================
-// DOM
-// ======================
+/* ======================
+   分類設定
+====================== */
+const GROUP_MAP = {
+  zh: [
+    { value: "bible", label: "聖經" },
+    { value: "other", label: "其他" }
+  ],
+  th: [
+    { value: "bible", label: "พระคัมภีร์" },
+    { value: "other", label: "อื่นๆ" }
+  ]
+};
+
+const CATEGORY_MAP = {
+  bible: [
+    { value: "all", label: "全部" },
+    { value: "person", label: "人物" },
+    { value: "place", label: "地方" },
+    { value: "vocab", label: "詞彙" }
+  ],
+  other: [
+    { value: "all", label: "全部" },
+    { value: "travel", label: "旅行" },
+    { value: "life", label: "生活" },
+    { value: "food", label: "美食" },
+    { value: "knowledge", label: "知識" }
+  ]
+};
+
+/* ======================
+   DOM
+====================== */
 const setup = document.getElementById("setup");
 const game = document.getElementById("game");
 
-const startBtn = document.getElementById("startBtn");
+const languageSelect = document.getElementById("languageSelect");
+const groupSelect = document.getElementById("groupSelect");
+const categorySelect = document.getElementById("categorySelect");
 
 const teamSelect = document.getElementById("teamSelect");
 const roundSelect = document.getElementById("roundSelect");
-const qPerRoundSelect = document.getElementById("questionPerRound");
+const qPerRoundSelect = document.getElementById("qPerRoundSelect");
+
+const startBtn = document.getElementById("startBtn");
 
 const questionTitle = document.getElementById("questionTitle");
 const imageRow = document.getElementById("imageRow");
 const answerBox = document.getElementById("answer");
 
+const teamButtons = document.getElementById("teamButtons");
+
 const toggleAnswerBtn = document.getElementById("toggleAnswerBtn");
 const nextBtn = document.getElementById("nextBtn");
 
-const teamButtons = document.getElementById("teamButtons");
-// ======================
-// 載入 Google Sheet
-// ======================
+/* ======================
+   初始化 Select
+====================== */
+function initSelectors() {
+  languageSelect.innerHTML = `
+    <option value="">選擇語言</option>
+    <option value="zh">中文</option>
+    <option value="th">ไทย</option>
+  `;
+
+  groupSelect.innerHTML = `<option value="">請先選語言</option>`;
+  groupSelect.disabled = true;
+
+  categorySelect.innerHTML = `<option value="">請先選分類</option>`;
+  categorySelect.disabled = true;
+}
+
+initSelectors();
+
+/* ======================
+   語言 → 大分類
+====================== */
+languageSelect.addEventListener("change", () => {
+  const lang = languageSelect.value;
+
+  groupSelect.innerHTML = "";
+  categorySelect.innerHTML = `<option value="">請先選分類</option>`;
+  categorySelect.disabled = true;
+
+  if (!lang) {
+    groupSelect.innerHTML = `<option value="">請先選語言</option>`;
+    groupSelect.disabled = true;
+    return;
+  }
+
+  groupSelect.disabled = false;
+  groupSelect.innerHTML = `<option value="">選擇分類</option>`;
+
+  GROUP_MAP[lang].forEach(g => {
+    const opt = document.createElement("option");
+    opt.value = g.value;
+    opt.textContent = g.label;
+    groupSelect.appendChild(opt);
+  });
+});
+
+/* ======================
+   大分類 → 子分類
+====================== */
+groupSelect.addEventListener("change", () => {
+  const group = groupSelect.value;
+  categorySelect.innerHTML = "";
+
+  if (!group) {
+    categorySelect.innerHTML = `<option value="">請先選分類</option>`;
+    categorySelect.disabled = true;
+    return;
+  }
+
+  categorySelect.disabled = false;
+  categorySelect.innerHTML = `<option value="">選擇題目類型</option>`;
+
+  CATEGORY_MAP[group].forEach(c => {
+    const opt = document.createElement("option");
+    opt.value = c.value;
+    opt.textContent = c.label;
+    categorySelect.appendChild(opt);
+  });
+});
+
+/* ======================
+   載入 Google Sheet
+====================== */
 fetch(SHEET_URL)
   .then(res => res.json())
   .then(data => {
     allQuestions = data;
     startBtn.disabled = false;
-    console.log("題目已載入：", allQuestions.length);
+    console.log("✅ 題目載入完成：", data.length);
   })
-  .catch(err => {
-    alert("❌ 無法載入題目");
-    console.error(err);
-  });
-// ======================
-// 開始遊戲
-// ======================
+  .catch(() => alert("❌ 無法載入題目"));
+
+/* ======================
+   開始遊戲
+====================== */
 startBtn.onclick = () => {
   teamCount = Number(teamSelect.value);
   roundCount = Number(roundSelect.value);
@@ -69,7 +173,6 @@ startBtn.onclick = () => {
 
   teamScores = new Array(teamCount).fill(0);
   usedQuestionIds.clear();
-
   currentRound = 1;
 
   setup.classList.add("hidden");
@@ -77,14 +180,26 @@ startBtn.onclick = () => {
 
   startRound();
 };
-// ======================
-// 開始一輪
-// ======================
+
+/* ======================
+   開始一輪
+====================== */
 function startRound() {
   currentQuestionIndex = 0;
   scoredTeamsThisQuestion.clear();
 
-  const pool = allQuestions.filter(q => !usedQuestionIds.has(q.id));
+  const lang = languageSelect.value;
+  const group = groupSelect.value;
+  const category = categorySelect.value;
+
+  const pool = allQuestions.filter(q => {
+    if (usedQuestionIds.has(q.id)) return false;
+    if (q.language !== lang) return false;
+    if (q.group !== group) return false;
+    if (category !== "all" && q.category !== category) return false;
+    return true;
+  });
+
   shuffle(pool);
 
   roundQuestions = pool.slice(0, questionsPerRound);
@@ -92,9 +207,10 @@ function startRound() {
 
   loadQuestion();
 }
-// ======================
-// 載入題目
-// ======================
+
+/* ======================
+   載入題目
+====================== */
 function loadQuestion() {
   const q = roundQuestions[currentQuestionIndex];
   if (!q) return;
@@ -122,15 +238,15 @@ function loadQuestion() {
 
   imageRow.appendChild(document.createTextNode(" ＝？"));
 
-  answerBox.innerText = q.answer;
+  answerBox.innerText = q.answer || "";
   answerBox.classList.add("hidden");
 
   renderTeams();
-  nextBtn.classList.remove("hidden");
 }
-// ======================
-// 隊伍加分
-// ======================
+
+/* ======================
+   隊伍加分（每題每組一次）
+====================== */
 function renderTeams() {
   teamButtons.innerHTML = "";
 
@@ -138,9 +254,7 @@ function renderTeams() {
     const btn = document.createElement("button");
     btn.innerText = `第 ${i + 1} 組 ＋1（${teamScores[i]}）`;
 
-    if (scoredTeamsThisQuestion.has(i)) {
-      btn.disabled = true;
-    }
+    if (scoredTeamsThisQuestion.has(i)) btn.disabled = true;
 
     btn.onclick = () => {
       if (scoredTeamsThisQuestion.has(i)) return;
@@ -152,10 +266,17 @@ function renderTeams() {
     teamButtons.appendChild(btn);
   }
 }
+
+/* ======================
+   顯示答案
+====================== */
 toggleAnswerBtn.onclick = () => {
   answerBox.classList.remove("hidden");
 };
 
+/* ======================
+   下一題
+====================== */
 nextBtn.onclick = () => {
   currentQuestionIndex++;
 
@@ -164,7 +285,8 @@ nextBtn.onclick = () => {
 
     if (currentRound > roundCount) {
       alert("🎉 遊戲完成");
-      location.reload();
+      setup.classList.remove("hidden");
+      game.classList.add("hidden");
     } else {
       startRound();
     }
@@ -172,9 +294,10 @@ nextBtn.onclick = () => {
     loadQuestion();
   }
 };
-// ======================
-// 工具
-// ======================
+
+/* ======================
+   工具
+====================== */
 function shuffle(arr) {
   for (let i = arr.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
