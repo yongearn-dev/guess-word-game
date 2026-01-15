@@ -3,64 +3,66 @@
 <head>
   <meta charset="UTF-8" />
   <title>估字遊戲</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="stylesheet" href="style.css" />
 </head>
-<body>
 
-  <body class="theme-cartoon">
+<body class="theme-cartoon">
 
+<!-- Audio -->
 <audio id="bgm" src="audio/bgm.mp3" loop></audio>
 <audio id="sfxScore" src="audio/score.mp3"></audio>
 <audio id="sfxNext" src="audio/next.mp3"></audio>
 
+<!-- 主頁 -->
+<div id="home" class="card">
+  <h1>🎯 估字遊戲</h1>
 
-  <!-- 主頁 -->
-  <div id="home" class="card">
-    <h2>🎯 估字遊戲</h2>
+  <label>
+    主分類：
+    <select id="groupSelect">
+      <option value="bible">聖經</option>
+      <option value="other">其他</option>
+    </select>
+  </label>
 
-    <label>分類</label><br />
+  <label>
+    題目分類：
     <select id="categorySelect">
       <option value="all">全部</option>
-      <option value="百科">百科 ความรู้รอบตัว</option>
-      <option value="聖經">聖經 Bible</option>
-      <option value="生活">生活 คำถามทั่วไป</option>
-      <option value="旅行">旅行 Travel</option>
+      <option value="person">人物</option>
+      <option value="place">地方</option>
+      <option value="vocab">詞彙</option>
     </select>
+  </label>
 
-    <br /><br />
-
-    <label>隊伍數量</label><br />
+  <label>
+    隊伍數量：
     <select id="teamSelect">
-      <option value="1">G1</option>
-      <option value="2">G2</option>
-      <option value="3">G3</option>
-      <option value="4">G4</option>
+      <option value="1">1 組</option>
+      <option value="2">2 組</option>
+      <option value="3">3 組</option>
+      <option value="4">4 組</option>
     </select>
+  </label>
 
-    <br /><br />
+  <button id="startBtn" disabled>開始遊戲 ▶</button>
+</div>
 
-    <button id="startBtn" disabled>▶ 開始遊戲</button>
-  </div>
+<!-- 遊戲頁 -->
+<div id="game" class="card hidden">
+  <h2 id="questionTitle"></h2>
+  <div id="imageRow" class="image-row"></div>
 
-  <!-- 遊戲頁 -->
-  <div id="game" class="card hidden">
-    <h3 id="questionTitle"></h3>
+  <button id="toggleAnswerBtn">顯示答案</button>
+  <div id="answer" class="answer hidden"></div>
 
-    <div id="imageRow" class="image-row"></div>
-    <div id="teamArea" class="team-area hidden"></div>
+  <div id="teamButtons" class="team-buttons"></div>
+  <div id="scoreboard" class="scoreboard"></div>
 
+  <button id="nextBtn" class="secondary hidden">下一題 ▶</button>
+</div>
 
-    <div class="actions">
-      <button id="toggleAnswerBtn" class="secondary">顯示答案</button>
-      <button id="nextBtn" class="hidden">下一題</button>
-    </div>
-
-    <div id="answer" class="answer hidden"></div>
-
-    <div id="scoreboard" class="scoreboard"></div>
-    <div id="teamButtons"></div>
-  </div>
-
-  <script src="script.js"></script>
+<script src="script.js"></script>
 </body>
 </html>
