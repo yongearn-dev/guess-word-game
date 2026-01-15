@@ -203,7 +203,6 @@ fetch(SHEET_URL)
    開始遊戲
 ====================== */
 startBtn.onclick = () => {
-  // 1️⃣ 讀取設定
   teamCount = Number(teamSelect.value);
   roundCount = Number(roundSelect.value);
   questionsPerRound = Number(qPerRoundSelect.value);
@@ -212,17 +211,9 @@ startBtn.onclick = () => {
   usedQuestionIds.clear();
   currentRound = 1;
 
-  // 2️⃣ 進入遊戲畫面
   setup.classList.add("hidden");
   game.classList.remove("hidden");
 
-  // 3️⃣ unlock audio（Safari / Chrome）
-  if (enableAudio.checked) {
-    unlockAudio();
-    bgm.play().catch(() => {});
-  }
-   
-  // 4️⃣ 開始第一輪
   startRound();
 };
 
