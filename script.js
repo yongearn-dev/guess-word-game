@@ -204,6 +204,21 @@ fetch(SHEET_URL)
   });
 
 /* ======================
+   載入 Google Sheet
+====================== */
+fetch(SHEET_URL)
+  .then(res => res.json())
+  .then(data => {
+    allQuestions = data;
+    startBtn.disabled = false;
+    console.log("✅ 題目載入完成：", data.length);
+  })
+  .catch(err => {
+    alert("❌ 無法載入題目");
+    console.error(err);
+  });
+
+/* ======================
    開始遊戲
 ====================== */
 startBtn.onclick = () => {
