@@ -222,13 +222,7 @@ fetch(SHEET_URL)
    開始遊戲
 ====================== */
 startBtn.onclick = () => {
-  // 1️⃣ unlock audio（Safari / Chrome）
-  if (enableAudio.checked) {
-    unlockAudio();
-    bgm.play().catch(() => {});
-  }
-
-  // 2️⃣ 讀取設定
+  // 1️⃣ 讀取設定
   teamCount = Number(teamSelect.value);
   roundCount = Number(roundSelect.value);
   questionsPerRound = Number(qPerRoundSelect.value);
@@ -237,14 +231,13 @@ startBtn.onclick = () => {
   usedQuestionIds.clear();
   currentRound = 1;
 
-  // 3️⃣ 進入遊戲畫面
+  // 2️⃣ 進入遊戲畫面
   setup.classList.add("hidden");
   game.classList.remove("hidden");
 
-  // 4️⃣ 開始第一輪
+  // 3️⃣ 開始第一輪
   startRound();
 };
-
 
 /* ======================
    隊伍加分（每題每組一次）
