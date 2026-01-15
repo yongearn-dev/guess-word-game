@@ -12,7 +12,7 @@ bgm.volume = 0.25;
 sfxScore.volume = 0.8;
 sfxNext.volume = 0.6;
 
-let audioUnlocked = false;
+let audioUnlocked = true;
 
 function unlockAudio() {
   if (audioUnlocked) return;
