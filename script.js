@@ -1,4 +1,14 @@
 "use strict";
+// ======================
+// 音效
+// ======================
+const bgm = document.getElementById("bgm");
+const sfxScore = document.getElementById("sfxScore");
+const sfxNext = document.getElementById("sfxNext");
+
+bgm.volume = 0.25;
+sfxScore.volume = 0.8;
+sfxNext.volume = 0.6;
 
 /* ======================
    基本設定
