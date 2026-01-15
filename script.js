@@ -177,6 +177,19 @@ fetch(SHEET_URL)
    開始遊戲
 ====================== */
 startBtn.onclick = () => {
+   if (enableAudio.checked) {
+    unlockAudio();
+
+    const bgm = document.getElementById("bgm");
+    bgm.volume = 0.4;
+    bgm.play().catch(()=>{});
+  }
+
+  // 你原本的開始遊戲邏輯
+  setup.classList.add("hidden");
+  game.classList.remove("hidden");
+  startRound();
+};
   teamCount = Number(teamSelect.value);
   roundCount = Number(roundSelect.value);
   questionsPerRound = Number(qPerRoundSelect.value);
@@ -189,7 +202,6 @@ startBtn.onclick = () => {
   game.classList.remove("hidden");
 
   startRound();
-};
 
 /* ======================
    開始一輪
@@ -275,6 +287,12 @@ function renderTeams() {
 
     teamButtons.appendChild(btn);
   }
+};
+
+function playScoreSound() {
+  if (!enableAudio.checked) return;
+  sfxScore.currentTime = 0;
+  sfxScore.play().catch(()=>{});
 }
 
 /* ======================
@@ -303,6 +321,12 @@ nextBtn.onclick = () => {
   } else {
     loadQuestion();
   }
+};
+
+function playNextSound() {
+  if (!enableAudio.checked) return;
+  sfxNext.currentTime = 0;
+  sfxNext.play().catch(()=>{});
 };
 
 /* ======================
