@@ -1,7 +1,7 @@
 "use strict";
 
 /* ======================
-   Audio
+   音效
 ====================== */
 const bgm = document.getElementById("bgm");
 const sfxScore = document.getElementById("sfxScore");
@@ -10,37 +10,6 @@ const sfxNext = document.getElementById("sfxNext");
 bgm.volume = 0.25;
 sfxScore.volume = 0.8;
 sfxNext.volume = 0.6;
-
-let audioUnlocked = false;
-
-function unlockAudio() {
-  if (audioUnlocked) return;
-
-  [bgm, sfxScore, sfxNext].forEach(a => {
-    if (!a) return;
-    a.muted = false;
-    a.play()
-      .then(() => {
-        a.pause(); 
-        a.currentTime = 0;
-      })
-      .catch(() => {});
-  });
-
-  audioUnlocked = true;
-}
-
-function playScoreSound() {
-  if (!enableAudio.checked) return;
-  sfxScore.currentTime = 0;
-  sfxScore.play().catch(() => {});
-}
-
-function playNextSound() {
-  if (!enableAudio.checked) return;
-  sfxNext.currentTime = 0;
-  sfxNext.play().catch(() => {});
-}
 
 /* ======================
    基本設定
@@ -139,7 +108,6 @@ function initSelectors() {
   categorySelect.innerHTML = `<option value="">請先選分類</option>`;
   categorySelect.disabled = true;
 }
-
 initSelectors();
 
 /* ======================
@@ -194,22 +162,23 @@ groupSelect.addEventListener("change", () => {
 });
 
 /* ======================
-   載入 Google Sheet
+   載入題目
 ====================== */
 fetch(SHEET_URL)
   .then(res => res.json())
   .then(data => {
     allQuestions = data;
     startBtn.disabled = false;
-    console.log("✅ 題目載入完成：", data.length);
-  })
-  .catch(() => alert("❌ 無法載入題目"));
+    console.log("題目載入完成:", data.length);
+  });
 
 /* ======================
-   開始遊戲
+   開始遊戲（含音樂）
 ====================== */
 startBtn.onclick = () => {
-  // 1️⃣ 讀取設定
+  bgm.currentTime = 0;
+  bgm.play().catch(() => {});
+
   teamCount = Number(teamSelect.value);
   roundCount = Number(roundSelect.value);
   questionsPerRound = Number(qPerRoundSelect.value);
@@ -218,19 +187,11 @@ startBtn.onclick = () => {
   usedQuestionIds.clear();
   currentRound = 1;
 
-  // 2️⃣ 進入遊戲畫面
   setup.classList.add("hidden");
   game.classList.remove("hidden");
 
-  // 3️⃣ unlock audio（Safari / Chrome）
-  if (enableAudio.checked) {
-    unlockAudio();
-    bgm.play().catch(() => {});
-  }
-   
-  // 4️⃣ 開始第一輪
   startRound();
-}; 
+};
 
 /* ======================
    開始一輪
@@ -267,25 +228,21 @@ function loadQuestion() {
   if (!q) return;
 
   scoredTeamsThisQuestion.clear();
-
   questionTitle.innerText =
     `第 ${currentRound} 輪 · 第 ${currentQuestionIndex + 1} 題`;
 
   imageRow.innerHTML = "";
 
-  const imgs = ["img1", "img2", "img3", "img4"]
+  ["img1", "img2", "img3", "img4"]
     .map(k => q[k])
-    .filter(Boolean);
-
-  imgs.forEach((name, i) => {
-    const img = document.createElement("img");
-    img.src = IMAGE_BASE + name;
-    imageRow.appendChild(img);
-
-    if (i < imgs.length - 1) {
-      imageRow.appendChild(document.createTextNode(" ＋ "));
-    }
-  });
+    .filter(Boolean)
+    .forEach((name, i, arr) => {
+      const img = document.createElement("img");
+      img.src = IMAGE_BASE + name;
+      imageRow.appendChild(img);
+      if (i < arr.length - 1)
+        imageRow.appendChild(document.createTextNode(" ＋ "));
+    });
 
   imageRow.appendChild(document.createTextNode(" ＝？"));
 
@@ -296,7 +253,7 @@ function loadQuestion() {
 }
 
 /* ======================
-   隊伍加分（每題每組一次）
+   隊伍加分
 ====================== */
 function renderTeams() {
   teamButtons.innerHTML = "";
@@ -305,12 +262,14 @@ function renderTeams() {
     const btn = document.createElement("button");
     btn.innerText = `第 ${i + 1} 組 ＋1（${teamScores[i]}）`;
 
-    if (scoredTeamsThisQuestion.has(i)) btn.disabled = true;
+    btn.disabled = scoredTeamsThisQuestion.has(i);
 
     btn.onclick = () => {
       if (scoredTeamsThisQuestion.has(i)) return;
       teamScores[i]++;
       scoredTeamsThisQuestion.add(i);
+      sfxScore.currentTime = 0;
+      sfxScore.play();
       renderTeams();
     };
 
@@ -329,11 +288,13 @@ toggleAnswerBtn.onclick = () => {
    下一題
 ====================== */
 nextBtn.onclick = () => {
+  sfxNext.currentTime = 0;
+  sfxNext.play();
+
   currentQuestionIndex++;
 
   if (currentQuestionIndex >= roundQuestions.length) {
     currentRound++;
-
     if (currentRound > roundCount) {
       alert("🎉 遊戲完成");
       setup.classList.remove("hidden");
