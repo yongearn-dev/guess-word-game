@@ -7,6 +7,16 @@ const SHEET_URL =
 const IMAGE_BASE_URL =
   "https://yongearn-dev.github.io/guess-word-game/images/";
 
+const QUESTIONS_PER_ROUND = 10;
+const TIME_PER_QUESTION = 30; // 秒
+
+const DIFFICULTY_SCORE = {
+  easy: 1,
+  normal: 2,
+  hard: 3,
+  extreme: 5
+};
+
 // ======================
 // Audio
 // ======================
@@ -24,9 +34,14 @@ sfxNext.volume = 0.6;
 let allQuestions = [];
 let questions = [];
 let current = 0;
+
 let teamCount = 1;
 let teamScores = [];
-let scoredThisQuestion = false;
+
+let usedQuestionIds = new Set(); // 跨回合記錄
+let timer = null;
+let timeLeft = TIME_PER_QUESTION;
+let timeUp = false;
 
 // ======================
 // DOM
@@ -41,6 +56,8 @@ const teamSelect = document.getElementById("teamSelect");
 
 const questionTitle = document.getElementById("questionTitle");
 const imageRow = document.getElementById("imageRow");
+const timerEl = document.getElementById("timer");
+
 const toggleAnswerBtn = document.getElementById("toggleAnswerBtn");
 const answerBox = document.getElementById("answer");
 const nextBtn = document.getElementById("nextBtn");
@@ -79,7 +96,7 @@ function createQuestionIcon() {
 }
 
 // ======================
-// 開始遊戲
+// 開始遊戲（新一輪）
 // ======================
 startBtn.onclick = () => {
   bgm.currentTime = 0;
@@ -88,16 +105,21 @@ startBtn.onclick = () => {
   teamCount = Number(teamSelect.value);
   teamScores = new Array(teamCount).fill(0);
 
-  questions = allQuestions.filter(q =>
+  // 篩選分類
+  let pool = allQuestions.filter(q =>
     q.group === groupSelect.value &&
     (categorySelect.value === "all" ||
      q.category === categorySelect.value)
   );
 
-  if (!questions.length) {
-    alert("此分類沒有題目");
-    return;
+  // 盡量避開用過的題
+  let unused = pool.filter(q => !usedQuestionIds.has(q.id));
+  if (unused.length < QUESTIONS_PER_ROUND) {
+    unused = pool; // 不夠就容許重覆
   }
+
+  questions = shuffle(unused).slice(0, QUESTIONS_PER_ROUND);
+  questions.forEach(q => usedQuestionIds.add(q.id));
 
   current = 0;
   home.classList.add("hidden");
@@ -110,10 +132,25 @@ startBtn.onclick = () => {
 // 題目
 // ======================
 function loadQuestion() {
-  const q = questions[current];
-  scoredThisQuestion = false;
+  clearInterval(timer);
+  timeLeft = TIME_PER_QUESTION;
+  timeUp = false;
+  timerEl.innerText = `⏳ ${timeLeft}`;
 
-  questionTitle.innerText = `第 ${current + 1} 題`;
+  timer = setInterval(() => {
+    timeLeft--;
+    timerEl.innerText = `⏳ ${timeLeft}`;
+    if (timeLeft <= 0) {
+      clearInterval(timer);
+      timeUp = true;
+    }
+  }, 1000);
+
+  const q = questions[current];
+
+  questionTitle.innerText =
+    `第 ${current + 1} 題（${q.difficulty}｜${DIFFICULTY_SCORE[q.difficulty]} 分）`;
+
   imageRow.innerHTML = "";
 
   const images = ["img1", "img2", "img3", "img4"]
@@ -163,9 +200,11 @@ nextBtn.onclick = () => {
   sfxNext.currentTime = 0;
   sfxNext.play();
 
+  clearInterval(timer);
   current++;
+
   if (current >= questions.length) {
-    alert("🎉 完成！");
+    alert("🎉 本輪完成！");
     game.classList.add("hidden");
     home.classList.remove("hidden");
   } else {
@@ -174,24 +213,22 @@ nextBtn.onclick = () => {
 };
 
 // ======================
-// 隊伍
+// 隊伍加分（可多組）
 // ======================
 function renderTeams() {
   teamButtons.innerHTML = "";
 
   teamScores.forEach((score, i) => {
     const btn = document.createElement("button");
-    btn.innerText = `第 ${i + 1} 組 +1（${score}）`;
+    btn.innerText = `第 ${i + 1} 組 +${DIFFICULTY_SCORE[questions[current].difficulty]}（${score}）`;
 
     btn.onclick = () => {
-      if (scoredThisQuestion) return;
+      if (timeUp) return;
 
       sfxScore.currentTime = 0;
       sfxScore.play();
 
-      teamScores[i]++;
-      scoredThisQuestion = true;
-
+      teamScores[i] += DIFFICULTY_SCORE[questions[current].difficulty];
       renderTeams();
       renderScoreboard();
     };
@@ -205,8 +242,15 @@ function renderTeams() {
 // ======================
 function renderScoreboard() {
   scoreboard.innerHTML =
-    "<strong>🏆 排行榜</strong>" +
+    "<strong>🏆 排行榜</strong><br>" +
     teamScores
       .map((s, i) => `第 ${i + 1} 組：${s} 分`)
       .join("<br>");
+}
+
+// ======================
+// 工具
+// ======================
+function shuffle(arr) {
+  return [...arr].sort(() => Math.random() - 0.5);
 }
