@@ -6,7 +6,6 @@
 const bgm = document.getElementById("bgm");
 const sfxScore = document.getElementById("sfxScore");
 const sfxNext = document.getElementById("sfxNext");
-const enableAudio = document.getElementById("enableAudio");
 
 bgm.volume = 0.25;
 sfxScore.volume = 0.8;
