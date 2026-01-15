@@ -197,10 +197,7 @@ fetch(SHEET_URL)
     startBtn.disabled = false;
     console.log("✅ 題目載入完成：", data.length);
   })
-  .catch(err => {
-    alert("❌ 無法載入題目");
-    console.error(err);
-  });
+  .catch(() => alert("❌ 無法載入題目"));
 
 /* ======================
    開始遊戲
@@ -219,7 +216,13 @@ startBtn.onclick = () => {
   setup.classList.add("hidden");
   game.classList.remove("hidden");
 
-  // 3️⃣ 開始第一輪
+  // 3️⃣ unlock audio（Safari / Chrome）
+  if (enableAudio.checked) {
+    unlockAudio();
+    bgm.play().catch(() => {});
+  }
+   
+  // 4️⃣ 開始第一輪
   startRound();
 };
 
