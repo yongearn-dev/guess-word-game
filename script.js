@@ -1,17 +1,6 @@
 "use strict";
 
 /* ======================
-   Audio
-====================== */
-const bgm = document.getElementById("bgm");
-const sfxScore = document.getElementById("sfxScore");
-const sfxNext = document.getElementById("sfxNext");
-
-bgm.volume = 0.25;
-sfxScore.volume = 0.8;
-sfxNext.volume = 0.6;
-
-/* ======================
    基本設定
 ====================== */
 const IMAGE_BASE =
@@ -78,8 +67,8 @@ const groupSelect = document.getElementById("groupSelect");
 const categorySelect = document.getElementById("categorySelect");
 
 const teamSelect = document.getElementById("teamSelect");
-const roundSelect = document.getElementById("roundCount");
-const qPerRoundSelect = document.getElementById("questionPerRound");
+const roundSelect = document.getElementById("roundSelect");
+const qPerRoundSelect = document.getElementById("qPerRoundSelect");
 
 const startBtn = document.getElementById("startBtn");
 
@@ -96,6 +85,12 @@ const nextBtn = document.getElementById("nextBtn");
    初始化 Select
 ====================== */
 function initSelectors() {
+  languageSelect.innerHTML = `
+    <option value="">選擇語言</option>
+    <option value="zh">中文</option>
+    <option value="th">ไทย</option>
+  `;
+
   groupSelect.innerHTML = `<option value="">請先選語言</option>`;
   groupSelect.disabled = true;
 
@@ -106,7 +101,7 @@ function initSelectors() {
 initSelectors();
 
 /* ======================
-   語言 → 群組
+   語言 → 大分類
 ====================== */
 languageSelect.addEventListener("change", () => {
   const lang = languageSelect.value;
@@ -122,7 +117,7 @@ languageSelect.addEventListener("change", () => {
   }
 
   groupSelect.disabled = false;
-  groupSelect.innerHTML = `<option value="">選擇內容群組</option>`;
+  groupSelect.innerHTML = `<option value="">選擇分類</option>`;
 
   GROUP_MAP[lang].forEach(g => {
     const opt = document.createElement("option");
@@ -133,7 +128,7 @@ languageSelect.addEventListener("change", () => {
 });
 
 /* ======================
-   群組 → 題目分類
+   大分類 → 子分類
 ====================== */
 groupSelect.addEventListener("change", () => {
   const group = groupSelect.value;
@@ -247,7 +242,6 @@ function loadQuestion() {
   answerBox.classList.add("hidden");
 
   renderTeams();
-  nextBtn.classList.remove("hidden");
 }
 
 /* ======================
@@ -260,15 +254,12 @@ function renderTeams() {
     const btn = document.createElement("button");
     btn.innerText = `第 ${i + 1} 組 ＋1（${teamScores[i]}）`;
 
-    if (scoredTeamsThisQuestion.has(i)) {
-      btn.disabled = true;
-    }
+    if (scoredTeamsThisQuestion.has(i)) btn.disabled = true;
 
     btn.onclick = () => {
       if (scoredTeamsThisQuestion.has(i)) return;
       teamScores[i]++;
       scoredTeamsThisQuestion.add(i);
-      playScoreSound();
       renderTeams();
     };
 
@@ -287,8 +278,6 @@ toggleAnswerBtn.onclick = () => {
    下一題
 ====================== */
 nextBtn.onclick = () => {
-  playNextSound();
-
   currentQuestionIndex++;
 
   if (currentQuestionIndex >= roundQuestions.length) {
