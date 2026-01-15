@@ -94,3 +94,9 @@ button.secondary {
 .scoreboard {
   margin-top: 16px;
 }
+.timer {
+  font-size: 1.4rem;
+  margin-bottom: 10px;
+  color: #d63031;
+  font-weight: bold;
+}
