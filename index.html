@@ -53,6 +53,25 @@
     <option value="4">T4</option>
   </select>
 
+  <!-- 輪數 -->
+<label>遊戲輪數</label>
+<select id="roundCount">
+  <option value="1">1 輪</option>
+  <option value="2">2 輪</option>
+  <option value="3">3 輪</option>
+  <option value="4">4 輪</option>
+  <option value="5">5 輪</option>
+</select>
+
+<!-- 每輪題數 -->
+<label>每輪題數</label>
+<select id="questionPerRound">
+  <option value="5">5 題</option>
+  <option value="10" selected>10 題</option>
+  <option value="15">15 題</option>
+</select>
+
+
   <!-- 計時 -->
   <label>
     <input type="checkbox" id="enableTimer" />
@@ -84,6 +103,8 @@
         <option value="10">10</option>
       </select>
     </div>
+
+    <div id="teamTimer" class="team-timer hidden"></div>
   </div>
 
   <!-- 音效 -->
