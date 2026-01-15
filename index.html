@@ -5,36 +5,62 @@
   <title>估字遊戲</title>
   <link rel="stylesheet" href="style.css" />
 </head>
+
 <body class="theme-cartoon">
 
-<!-- 設定頁 -->
-<div id="setup" class="card">
+<!-- 🔊 Audio -->
+<audio id="bgm" src="audio/bgm.mp3" loop></audio>
+<audio id="sfxScore" src="audio/score.mp3"></audio>
+<audio id="sfxNext" src="audio/next.mp3"></audio>
+
+<!-- ================= 設定頁 ================= -->
+<div id="setup">
+
   <h1>🎮 估字遊戲</h1>
 
+  <!-- 遊戲類型 -->
+  <label>遊戲類型</label>
+  <select id="gameSelect">
+    <option value="imageGuess">看圖估字</option>
+  </select>
+
+  <!-- 群組 -->
+  <label>內容群組</label>
+  <select id="groupSelect">
+    <option value="bible">聖經 พระคัมภีร์</option>
+    <option value="other">其他 อื่นๆ</option>
+  </select>
+
+  <!-- 語言 -->
+  <label>語言</label>
+  <select id="languageSelect">
+    <option value="zh">中文</option>
+    <option value="th">ไทย</option>
+  </select>
+
+  <!-- 分類 -->
   <label>分類</label>
   <select id="categorySelect">
-    <option value="person">人物</option>
-    <option value="place">地方</option>
-    <option value="vocab">詞彙</option>
+    <!-- JS 依 group + language 動態填 -->
   </select>
 
-  <label>組別數</label>
+  <!-- 組別 -->
+  <label>組別數量</label>
   <select id="teamSelect">
-    <option value="1">1 組</option>
-    <option value="2">2 組</option>
-    <option value="3">3 組</option>
-    <option value="4">4 組</option>
+    <option value="1">T1</option>
+    <option value="2">T2</option>
+    <option value="3">T3</option>
+    <option value="4">T4</option>
   </select>
 
-  <hr />
-
+  <!-- 計時 -->
   <label>
     <input type="checkbox" id="enableTimer" />
     啟用計時
   </label>
 
   <div id="timerOptions" class="hidden">
-    <label>計時方式</label>
+    <label>計時模式</label>
     <select id="timerMode">
       <option value="perQuestion">每題限時</option>
       <option value="perTeam">每組總時間</option>
@@ -43,30 +69,38 @@
     <div id="perQuestionOptions">
       <label>每題秒數</label>
       <select id="questionSeconds">
-        <option value="15">15 秒</option>
-        <option value="20">20 秒</option>
-        <option value="30" selected>30 秒</option>
-        <option value="45">45 秒</option>
+        <option value="15">15</option>
+        <option value="20">20</option>
+        <option value="30">30</option>
+        <option value="45">45</option>
       </select>
     </div>
 
     <div id="perTeamOptions" class="hidden">
       <label>每組分鐘</label>
       <select id="teamMinutes">
-        <option value="2">2 分鐘</option>
-        <option value="5" selected>5 分鐘</option>
-        <option value="10">10 分鐘</option>
+        <option value="2">2</option>
+        <option value="5">5</option>
+        <option value="10">10</option>
       </select>
     </div>
   </div>
 
+  <!-- 音效 -->
+  <label>
+    <input type="checkbox" id="enableAudio" checked />
+    啟用音效 / BGM
+  </label>
+
   <button id="startBtn">開始遊戲</button>
 </div>
 
-<!-- 遊戲頁 -->
-<div id="game" class="card hidden">
-  <h2 id="questionTitle"></h2>
+<!-- ================= 遊戲頁 ================= -->
+<div id="game" class="hidden">
+
   <div id="timerDisplay"></div>
+
+  <h2 id="questionTitle"></h2>
 
   <div id="imageRow"></div>
 
@@ -76,6 +110,7 @@
   <div id="teamButtons"></div>
 
   <button id="nextBtn" class="hidden">下一題</button>
+
 </div>
 
 <script src="script.js"></script>
