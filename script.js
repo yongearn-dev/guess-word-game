@@ -37,6 +37,9 @@ let roundCount = 1;
 let questionsPerRound = 5;
 let currentRound = 1;
 
+let timer = 30;
+let timerInterval = null;
+
 /* ======================
    分類設定
 ====================== */
@@ -91,6 +94,11 @@ const teamButtons = document.getElementById("teamButtons");
 
 const toggleAnswerBtn = document.getElementById("toggleAnswerBtn");
 const nextBtn = document.getElementById("nextBtn");
+
+const timerBox = document.getElementById("timer");
+const scoreboard = document.getElementById("scoreboard");
+const showScoreBtn = document.getElementById("showScoreBtn");
+
 
 /* ======================
    初始化 Select
@@ -227,7 +235,10 @@ function loadQuestion() {
   const q = roundQuestions[currentQuestionIndex];
   if (!q) return;
 
+  startTimer(); // ✅ 一定會執行
+
   scoredTeamsThisQuestion.clear();
+
   questionTitle.innerText =
     `第 ${currentRound} 輪 · 第 ${currentQuestionIndex + 1} 題`;
 
@@ -240,8 +251,9 @@ function loadQuestion() {
       const img = document.createElement("img");
       img.src = IMAGE_BASE + name;
       imageRow.appendChild(img);
-      if (i < arr.length - 1)
+      if (i < arr.length - 1) {
         imageRow.appendChild(document.createTextNode(" ＋ "));
+      }
     });
 
   imageRow.appendChild(document.createTextNode(" ＝？"));
@@ -251,6 +263,23 @@ function loadQuestion() {
 
   renderTeams();
 }
+
+function startTimer() {
+  clearInterval(timerInterval);
+  timer = 30;
+  timerBox.innerText = `⏱ ${timer}`;
+
+  timerInterval = setInterval(() => {
+    timer--;
+    timerBox.innerText = `⏱ ${timer}`;
+
+    if (timer <= 0) {
+      clearInterval(timerInterval);
+      timerBox.innerText = "⏱ 0";
+    }
+  }, 1000);
+}
+
 
 /* ======================
    隊伍加分
