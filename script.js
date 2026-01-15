@@ -1,121 +1,77 @@
-// ======================
-// Audio
-// ======================
-const bgm = document.getElementById("bgm");
-const sfxScore = document.getElementById("sfxScore");
-const sfxNext = document.getElementById("sfxNext");
+// ==================================================
+// 基本設定
+// ==================================================
+const IMAGE_BASE =
+  "https://yongearn-dev.github.io/guess-word-game/images/";
 
-bgm.volume = 0.25;
-sfxScore.volume = 0.8;
-sfxNext.volume = 0.6;
-
-// ======================
-// Sheet
-// ======================
 const SHEET_URL =
   "https://opensheet.elk.sh/1nmgda-PSW0qNpEnT65HozbrbK4SPoOlfq3WlEIQSgf4/Sheet1";
 
-// ======================
-// DOM
-// ======================
-const setup = document.getElementById("setup");
-const game = document.getElementById("game");
-
-const gameSelect = document.getElementById("gameSelect");
-const groupSelect = document.getElementById("groupSelect");
-const languageSelect = document.getElementById("languageSelect");
-const categorySelect = document.getElementById("categorySelect");
-
-const teamSelect = document.getElementById("teamSelect");
-const roundCountSelect = document.getElementById("roundCount");
-const questionPerRoundSelect = document.getElementById("questionPerRound");
-
-const enableTimer = document.getElementById("enableTimer");
-const timerMode = document.getElementById("timerMode");
-const teamMinutes = document.getElementById("teamMinutes");
-
-const startBtn = document.getElementById("startBtn");
-
-const questionTitle = document.getElementById("questionTitle");
-const imageRow = document.getElementById("imageRow");
-const toggleAnswerBtn = document.getElementById("toggleAnswerBtn");
-const answerBox = document.getElementById("answer");
-const nextBtn = document.getElementById("nextBtn");
-
-const teamButtons = document.getElementById("teamButtons");
-const teamTimerBox = document.getElementById("teamTimer");
-
-// ======================
-// State
-// ======================
+// ==================================================
+// 狀態
+// ==================================================
 let allQuestions = [];
 let usedQuestionIds = new Set();
 
-let questions = [];
-let current = 0;
+let roundQuestions = [];
+let currentQuestionIndex = 0;
 
 let teamCount = 1;
 let teamScores = [];
 
 let roundCount = 1;
-let questionsPerRound = 10;
+let questionsPerRound = 5;
 let currentRound = 1;
 
+// 每題記錄已加分的組
 let scoredTeamsThisQuestion = new Set();
 
-// Timer
-let teamTimeLeft = [];
-let timerInterval = null;
-let activeTeamIndex = 0;
+// ==================================================
+// DOM
+// ==================================================
+const setup = document.getElementById("setup");
+const game = document.getElementById("game");
 
-// ======================
-// Load Sheet
-// ======================
+const startBtn = document.getElementById("startBtn");
+
+const teamSelect = document.getElementById("teamSelect");
+const roundSelect = document.getElementById("roundSelect");
+const qPerRoundSelect = document.getElementById("questionPerRound");
+
+const questionTitle = document.getElementById("questionTitle");
+const imageRow = document.getElementById("imageRow");
+const answerBox = document.getElementById("answer");
+
+const toggleAnswerBtn = document.getElementById("toggleAnswerBtn");
+const nextBtn = document.getElementById("nextBtn");
+
+const teamButtons = document.getElementById("teamButtons");
+
+// ==================================================
+// 載入 Google Sheet
+// ==================================================
 fetch(SHEET_URL)
   .then(res => res.json())
   .then(data => {
     allQuestions = data;
-    updateCategoryOptions();
+    startBtn.disabled = false;
+  })
+  .catch(err => {
+    alert("❌ 無法載入題目");
+    console.error(err);
   });
 
-// ======================
-// Category Dynamic
-// ======================
-function updateCategoryOptions() {
-  const group = groupSelect.value;
-  const lang = languageSelect.value;
-
-  const categories = new Set(
-    allQuestions
-      .filter(q => q.group === group && q.language === lang)
-      .map(q => q.category)
-  );
-
-  categorySelect.innerHTML = "";
-  categories.forEach(c => {
-    const opt = document.createElement("option");
-    opt.value = c;
-    opt.innerText = c;
-    categorySelect.appendChild(opt);
-  });
-}
-
-groupSelect.onchange = updateCategoryOptions;
-languageSelect.onchange = updateCategoryOptions;
-
-// ======================
-// Start Game
-// ======================
+// ==================================================
+// 開始遊戲
+// ==================================================
 startBtn.onclick = () => {
-  if (document.getElementById("enableAudio").checked) {
-    bgm.play();
-  }
-
   teamCount = Number(teamSelect.value);
-  roundCount = Number(roundCountSelect.value);
-  questionsPerRound = Number(questionPerRoundSelect.value);
+  roundCount = Number(roundSelect.value);
+  questionsPerRound = Number(qPerRoundSelect.value);
 
   teamScores = new Array(teamCount).fill(0);
+  usedQuestionIds.clear();
+
   currentRound = 1;
 
   setup.classList.add("hidden");
@@ -124,84 +80,90 @@ startBtn.onclick = () => {
   startRound();
 };
 
-// ======================
-// Start Round
-// ======================
+// ==================================================
+// 開始一輪
+// ==================================================
 function startRound() {
-  current = 0;
+  currentQuestionIndex = 0;
+  scoredTeamsThisQuestion.clear();
 
-  const pool = allQuestions.filter(q =>
-    q.game === gameSelect.value &&
-    q.group === groupSelect.value &&
-    q.language === languageSelect.value &&
-    q.category === categorySelect.value &&
-    !usedQuestionIds.has(q.id)
-  );
-
+  // 只抽未用過的題
+  const pool = allQuestions.filter(q => !usedQuestionIds.has(q.id));
   shuffle(pool);
-  questions = pool.slice(0, questionsPerRound);
-  questions.forEach(q => usedQuestionIds.add(q.id));
 
-  initTeamTimers();
+  roundQuestions = pool.slice(0, questionsPerRound);
+
+  // 標記已使用
+  roundQuestions.forEach(q => usedQuestionIds.add(q.id));
+
   loadQuestion();
 }
 
-// ======================
-// Load Question
-// ======================
+// ==================================================
+// 載入題目
+// ==================================================
 function loadQuestion() {
-  const q = questions[current];
+  const q = roundQuestions[currentQuestionIndex];
   if (!q) return;
 
   scoredTeamsThisQuestion.clear();
 
   questionTitle.innerText =
-    `第 ${currentRound} 輪 · 第 ${current + 1} 題`;
+    `第 ${currentRound} 輪 · 第 ${currentQuestionIndex + 1} 題`;
 
   imageRow.innerHTML = "";
 
-  ["img1", "img2", "img3", "img4"]
+  const imgs = ["img1", "img2", "img3", "img4"]
     .map(k => q[k])
-    .filter(Boolean)
-    .forEach((src, i, arr) => {
-      const img = document.createElement("img");
-      img.src =
-        "https://yongearn-dev.github.io/guess-word-game/images/" + src;
-      imageRow.appendChild(img);
-      if (i < arr.length - 1) {
-        imageRow.appendChild(document.createTextNode(" ＋ "));
-      }
-    });
+    .filter(Boolean);
+
+  imgs.forEach((name, i) => {
+    const img = document.createElement("img");
+    img.src = IMAGE_BASE + name;
+    img.alt = name;
+    imageRow.appendChild(img);
+
+    if (i < imgs.length - 1) {
+      const plus = document.createElement("span");
+      plus.innerText = "＋";
+      imageRow.appendChild(plus);
+    }
+  });
 
   const eq = document.createElement("span");
-  eq.innerText = " = ?";
+  eq.className = "eq";
+  eq.innerText = "＝？";
   imageRow.appendChild(eq);
 
   answerBox.innerText = q.answer;
   answerBox.classList.add("hidden");
-  nextBtn.classList.add("hidden");
 
   renderTeams();
+
+  // 下一題永遠存在
+  nextBtn.classList.remove("hidden");
 }
 
-// ======================
-// Teams
-// ======================
+// ==================================================
+// 隊伍加分（每題每組最多一次）
+// ==================================================
 function renderTeams() {
   teamButtons.innerHTML = "";
 
   for (let i = 0; i < teamCount; i++) {
     const btn = document.createElement("button");
-    btn.innerText = `第 ${i + 1} 組 +${getScoreValue()} 分（${teamScores[i]}）`;
+
+    btn.innerText = `第 ${i + 1} 組 ＋1（${teamScores[i]}）`;
+
+    if (scoredTeamsThisQuestion.has(i)) {
+      btn.disabled = true;
+    }
 
     btn.onclick = () => {
       if (scoredTeamsThisQuestion.has(i)) return;
 
-      teamScores[i] += getScoreValue();
+      teamScores[i] += 1;
       scoredTeamsThisQuestion.add(i);
-
-      sfxScore.currentTime = 0;
-      sfxScore.play();
 
       renderTeams();
     };
@@ -210,25 +172,20 @@ function renderTeams() {
   }
 }
 
-function getScoreValue() {
-  return 2; // 之後再接 difficulty
-}
-
-// ======================
-// Answer / Next
-// ======================
+// ==================================================
+// 顯示答案
+// ==================================================
 toggleAnswerBtn.onclick = () => {
   answerBox.classList.remove("hidden");
-  nextBtn.classList.remove("hidden");
 };
 
+// ==================================================
+// 下一題
+// ==================================================
 nextBtn.onclick = () => {
-  sfxNext.currentTime = 0;
-  sfxNext.play();
+  currentQuestionIndex++;
 
-  current++;
-
-  if (current >= questions.length) {
+  if (currentQuestionIndex >= roundQuestions.length) {
     currentRound++;
 
     if (currentRound > roundCount) {
@@ -242,51 +199,9 @@ nextBtn.onclick = () => {
   }
 };
 
-// ======================
-// Timer (per team)
-// ======================
-function initTeamTimers() {
-  clearInterval(timerInterval);
-
-  if (!enableTimer.checked || timerMode.value !== "perTeam") {
-    teamTimerBox.classList.add("hidden");
-    return;
-  }
-
-  teamTimerBox.classList.remove("hidden");
-
-  teamTimeLeft = new Array(teamCount).fill(
-    Number(teamMinutes.value) * 60
-  );
-
-  activeTeamIndex = 0;
-  updateTeamTimerUI();
-
-  timerInterval = setInterval(() => {
-    teamTimeLeft[activeTeamIndex]--;
-    updateTeamTimerUI();
-
-    if (teamTimeLeft[activeTeamIndex] <= 0) {
-      activeTeamIndex++;
-      if (activeTeamIndex >= teamCount) {
-        clearInterval(timerInterval);
-      }
-    }
-  }, 1000);
-}
-
-function updateTeamTimerUI() {
-  const t = teamTimeLeft[activeTeamIndex];
-  const m = String(Math.floor(t / 60)).padStart(2, "0");
-  const s = String(t % 60).padStart(2, "0");
-
-  teamTimerBox.innerText =
-    `⏱ 第 ${activeTeamIndex + 1} 組：${m}:${s}`;
-}
-
-// ======================
-// Utils
-// ======================
+// ==================================================
+// 工具：洗牌
+// ==================================================
 function shuffle(arr) {
   for (let i = arr.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
