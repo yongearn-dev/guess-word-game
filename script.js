@@ -11,37 +11,6 @@ bgm.volume = 0.25;
 sfxScore.volume = 0.8;
 sfxNext.volume = 0.6;
 
-let audioUnlocked = false;
-
-function unlockAudio() {
-  if (audioUnlocked) return;
-
-  [bgm, sfxScore, sfxNext].forEach(a => {
-    if (!a) return;
-    a.muted = false;
-    a.play()
-      .then(() => {
-        a.pause(); 
-        a.currentTime = 0;
-      })
-      .catch(() => {});
-  });
-
-  audioUnlocked = true;
-}
-
-function playScoreSound() {
-  if (!enableAudio.checked) return;
-  sfxScore.currentTime = 0;
-  sfxScore.play().catch(() => {});
-}
-
-function playNextSound() {
-  if (!enableAudio.checked) return;
-  sfxNext.currentTime = 0;
-  sfxNext.play().catch(() => {});
-}
-
 /* ======================
    基本設定
 ====================== */
