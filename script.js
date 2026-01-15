@@ -1,15 +1,15 @@
-// ==================================================
+"use strict";
+// ======================
 // 基本設定
-// ==================================================
+// ======================
 const IMAGE_BASE =
   "https://yongearn-dev.github.io/guess-word-game/images/";
 
 const SHEET_URL =
   "https://opensheet.elk.sh/1nmgda-PSW0qNpEnT65HozbrbK4SPoOlfq3WlEIQSgf4/Sheet1";
-
-// ==================================================
+// ======================
 // 狀態
-// ==================================================
+// ======================
 let allQuestions = [];
 let usedQuestionIds = new Set();
 
@@ -23,12 +23,11 @@ let roundCount = 1;
 let questionsPerRound = 5;
 let currentRound = 1;
 
-// 每題記錄已加分的組
+// 記錄：今題已加分的組
 let scoredTeamsThisQuestion = new Set();
-
-// ==================================================
+// ======================
 // DOM
-// ==================================================
+// ======================
 const setup = document.getElementById("setup");
 const game = document.getElementById("game");
 
@@ -46,24 +45,23 @@ const toggleAnswerBtn = document.getElementById("toggleAnswerBtn");
 const nextBtn = document.getElementById("nextBtn");
 
 const teamButtons = document.getElementById("teamButtons");
-
-// ==================================================
+// ======================
 // 載入 Google Sheet
-// ==================================================
+// ======================
 fetch(SHEET_URL)
   .then(res => res.json())
   .then(data => {
     allQuestions = data;
     startBtn.disabled = false;
+    console.log("題目已載入：", allQuestions.length);
   })
   .catch(err => {
     alert("❌ 無法載入題目");
     console.error(err);
   });
-
-// ==================================================
+// ======================
 // 開始遊戲
-// ==================================================
+// ======================
 startBtn.onclick = () => {
   teamCount = Number(teamSelect.value);
   roundCount = Number(roundSelect.value);
@@ -79,29 +77,24 @@ startBtn.onclick = () => {
 
   startRound();
 };
-
-// ==================================================
+// ======================
 // 開始一輪
-// ==================================================
+// ======================
 function startRound() {
   currentQuestionIndex = 0;
   scoredTeamsThisQuestion.clear();
 
-  // 只抽未用過的題
   const pool = allQuestions.filter(q => !usedQuestionIds.has(q.id));
   shuffle(pool);
 
   roundQuestions = pool.slice(0, questionsPerRound);
-
-  // 標記已使用
   roundQuestions.forEach(q => usedQuestionIds.add(q.id));
 
   loadQuestion();
 }
-
-// ==================================================
+// ======================
 // 載入題目
-// ==================================================
+// ======================
 function loadQuestion() {
   const q = roundQuestions[currentQuestionIndex];
   if (!q) return;
@@ -120,39 +113,29 @@ function loadQuestion() {
   imgs.forEach((name, i) => {
     const img = document.createElement("img");
     img.src = IMAGE_BASE + name;
-    img.alt = name;
     imageRow.appendChild(img);
 
     if (i < imgs.length - 1) {
-      const plus = document.createElement("span");
-      plus.innerText = "＋";
-      imageRow.appendChild(plus);
+      imageRow.appendChild(document.createTextNode(" ＋ "));
     }
   });
 
-  const eq = document.createElement("span");
-  eq.className = "eq";
-  eq.innerText = "＝？";
-  imageRow.appendChild(eq);
+  imageRow.appendChild(document.createTextNode(" ＝？"));
 
   answerBox.innerText = q.answer;
   answerBox.classList.add("hidden");
 
   renderTeams();
-
-  // 下一題永遠存在
   nextBtn.classList.remove("hidden");
 }
-
-// ==================================================
-// 隊伍加分（每題每組最多一次）
-// ==================================================
+// ======================
+// 隊伍加分
+// ======================
 function renderTeams() {
   teamButtons.innerHTML = "";
 
   for (let i = 0; i < teamCount; i++) {
     const btn = document.createElement("button");
-
     btn.innerText = `第 ${i + 1} 組 ＋1（${teamScores[i]}）`;
 
     if (scoredTeamsThisQuestion.has(i)) {
@@ -161,27 +144,18 @@ function renderTeams() {
 
     btn.onclick = () => {
       if (scoredTeamsThisQuestion.has(i)) return;
-
-      teamScores[i] += 1;
+      teamScores[i]++;
       scoredTeamsThisQuestion.add(i);
-
       renderTeams();
     };
 
     teamButtons.appendChild(btn);
   }
 }
-
-// ==================================================
-// 顯示答案
-// ==================================================
 toggleAnswerBtn.onclick = () => {
   answerBox.classList.remove("hidden");
 };
 
-// ==================================================
-// 下一題
-// ==================================================
 nextBtn.onclick = () => {
   currentQuestionIndex++;
 
@@ -189,7 +163,7 @@ nextBtn.onclick = () => {
     currentRound++;
 
     if (currentRound > roundCount) {
-      alert("🎉 遊戲完成！");
+      alert("🎉 遊戲完成");
       location.reload();
     } else {
       startRound();
@@ -198,10 +172,9 @@ nextBtn.onclick = () => {
     loadQuestion();
   }
 };
-
-// ==================================================
-// 工具：洗牌
-// ==================================================
+// ======================
+// 工具
+// ======================
 function shuffle(arr) {
   for (let i = arr.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
