@@ -1,24 +1,5 @@
 // ======================
-// 設定
-// ======================
-const SHEET_URL =
-  "https://opensheet.elk.sh/1nmgda-PSW0qNpEnT65HozbrbK4SPoOlfq3WlEIQSgf4/Sheet1";
-
-const IMAGE_BASE_URL =
-  "https://yongearn-dev.github.io/guess-word-game/images/";
-
-const QUESTIONS_PER_ROUND = 10;
-const TIME_PER_QUESTION = 30; // 秒
-
-const DIFFICULTY_SCORE = {
-  easy: 1,
-  normal: 2,
-  hard: 3,
-  extreme: 5
-};
-
-// ======================
-// Audio
+// 音效
 // ======================
 const bgm = document.getElementById("bgm");
 const sfxScore = document.getElementById("sfxScore");
@@ -28,20 +9,33 @@ bgm.volume = 0.25;
 sfxScore.volume = 0.8;
 sfxNext.volume = 0.6;
 
+// 自動播放 BGM（需 user gesture，放喺 start）
+function playBGM() {
+  bgm.loop = true;
+  bgm.play().catch(() => {});
+}
+
+// ======================
+// 設定
+// ======================
+const SHEET_URL =
+  "https://opensheet.elk.sh/1nmgda-PSW0qNpEnT65HozbrbK4SPoOlfq3WlEIQSgf4/Sheet1";
+
+const QUESTIONS_PER_ROUND = 10;
+const IMAGE_BASE =
+  "https://yongearn-dev.github.io/guess-word-game/images/";
+
 // ======================
 // 狀態
 // ======================
 let allQuestions = [];
 let questions = [];
-let current = 0;
+let usedQuestionIds = new Set();
 
+let current = 0;
 let teamCount = 1;
 let teamScores = [];
-
-let usedQuestionIds = new Set(); // 跨回合記錄
-let timer = null;
-let timeLeft = TIME_PER_QUESTION;
-let timeUp = false;
+let answeredTeams = new Set(); // 🔒 每題已得分的組
 
 // ======================
 // DOM
@@ -50,20 +44,47 @@ const home = document.getElementById("home");
 const game = document.getElementById("game");
 
 const startBtn = document.getElementById("startBtn");
-const groupSelect = document.getElementById("groupSelect");
 const categorySelect = document.getElementById("categorySelect");
 const teamSelect = document.getElementById("teamSelect");
 
 const questionTitle = document.getElementById("questionTitle");
 const imageRow = document.getElementById("imageRow");
-const timerEl = document.getElementById("timer");
 
 const toggleAnswerBtn = document.getElementById("toggleAnswerBtn");
 const answerBox = document.getElementById("answer");
 const nextBtn = document.getElementById("nextBtn");
 
 const teamButtons = document.getElementById("teamButtons");
-const scoreboard = document.getElementById("scoreboard");
+const scoreboard = document.getElementBysById?.("scoreboard") || document.getElementById("scoreboard");
+
+// ======================
+// 工具
+// ======================
+function shuffle(arr) {
+  return [...arr].sort(() => Math.random() - 0.5);
+}
+
+function questionScore(q) {
+  return { easy: 1, normal: 2, hard: 3, extreme: 5 }[q.difficulty] || 2;
+}
+
+// 問號 icon（＝ 與 ？分開）
+function createQuestionIcon() {
+  const wrap = document.createElement("div");
+  wrap.className = "question-icon";
+
+  const eq = document.createElement("div");
+  eq.className = "q-eq";
+  eq.innerText = "=";
+
+  const qm = document.createElement("div");
+  qm.className = "q-qm";
+  qm.innerText = "?";
+
+  wrap.appendChild(eq);
+  wrap.appendChild(qm);
+  return wrap;
+}
 
 // ======================
 // 載入 Sheet
@@ -76,52 +97,33 @@ fetch(SHEET_URL)
   });
 
 // ======================
-// = ? icon
-// ======================
-function createQuestionIcon() {
-  const wrap = document.createElement("div");
-  wrap.className = "question-icon";
-
-  const eq = document.createElement("span");
-  eq.className = "q-equal";
-  eq.innerText = "=";
-
-  const q = document.createElement("span");
-  q.className = "q-question";
-  q.innerText = "?";
-
-  wrap.appendChild(eq);
-  wrap.appendChild(q);
-  return wrap;
-}
-
-// ======================
-// 開始遊戲（新一輪）
+// 開始遊戲
 // ======================
 startBtn.onclick = () => {
-  bgm.currentTime = 0;
-  bgm.play();
+  playBGM();
 
+  const category = categorySelect.value;
   teamCount = Number(teamSelect.value);
-  teamScores = new Array(teamCount).fill(0);
 
-  // 篩選分類
-  let pool = allQuestions.filter(q =>
-    q.group === groupSelect.value &&
-    (categorySelect.value === "all" ||
-     q.category === categorySelect.value)
-  );
+  let pool =
+    category === "all"
+      ? allQuestions
+      : allQuestions.filter(q => q.category === category);
 
-  // 盡量避開用過的題
-  let unused = pool.filter(q => !usedQuestionIds.has(q.id));
-  if (unused.length < QUESTIONS_PER_ROUND) {
-    unused = pool; // 不夠就容許重覆
+  // 去除已用題目
+  pool = pool.filter(q => !usedQuestionIds.has(q.id));
+
+  if (pool.length < QUESTIONS_PER_ROUND) {
+    alert("此分類剩餘題目不足 10 題");
+    return;
   }
 
-  questions = shuffle(unused).slice(0, QUESTIONS_PER_ROUND);
+  questions = shuffle(pool).slice(0, QUESTIONS_PER_ROUND);
   questions.forEach(q => usedQuestionIds.add(q.id));
 
   current = 0;
+  teamScores = new Array(teamCount).fill(0);
+
   home.classList.add("hidden");
   game.classList.remove("hidden");
 
@@ -129,43 +131,27 @@ startBtn.onclick = () => {
 };
 
 // ======================
-// 題目
+// 載入題目
 // ======================
 function loadQuestion() {
-  clearInterval(timer);
-  timeLeft = TIME_PER_QUESTION;
-  timeUp = false;
-  timerEl.innerText = `⏳ ${timeLeft}`;
-
-  timer = setInterval(() => {
-    timeLeft--;
-    timerEl.innerText = `⏳ ${timeLeft}`;
-    if (timeLeft <= 0) {
-      clearInterval(timer);
-      timeUp = true;
-    }
-  }, 1000);
-
   const q = questions[current];
+  if (!q) return;
 
-  questionTitle.innerText =
-    `第 ${current + 1} 題（${q.difficulty}｜${DIFFICULTY_SCORE[q.difficulty]} 分）`;
+  answeredTeams.clear();
 
+  questionTitle.innerText = `第 ${current + 1} 題（${questionScore(q)} 分）`;
   imageRow.innerHTML = "";
 
-  const images = ["img1", "img2", "img3", "img4"]
+  const imgs = ["img1", "img2", "img3", "img4"]
     .map(k => q[k])
     .filter(Boolean);
 
-  images.forEach((name, i) => {
+  imgs.forEach((name, i) => {
     const img = document.createElement("img");
-    img.src = IMAGE_BASE_URL + name;
-    img.onerror = () => {
-      img.src = IMAGE_BASE_URL + "image-not-found.png";
-    };
+    img.src = IMAGE_BASE + name;
     imageRow.appendChild(img);
 
-    if (i < images.length - 1) {
+    if (i < imgs.length - 1) {
       const plus = document.createElement("span");
       plus.innerText = "＋";
       imageRow.appendChild(plus);
@@ -185,7 +171,7 @@ function loadQuestion() {
 }
 
 // ======================
-// 答案
+// 顯示答案
 // ======================
 toggleAnswerBtn.onclick = () => {
   answerBox.classList.remove("hidden");
@@ -200,11 +186,9 @@ nextBtn.onclick = () => {
   sfxNext.currentTime = 0;
   sfxNext.play();
 
-  clearInterval(timer);
   current++;
-
   if (current >= questions.length) {
-    alert("🎉 本輪完成！");
+    alert("🎉 本輪完成");
     game.classList.add("hidden");
     home.classList.remove("hidden");
   } else {
@@ -213,44 +197,51 @@ nextBtn.onclick = () => {
 };
 
 // ======================
-// 隊伍加分（可多組）
+// 隊伍按鈕（每題每組只可一次）
 // ======================
 function renderTeams() {
   teamButtons.innerHTML = "";
 
-  teamScores.forEach((score, i) => {
+  for (let i = 0; i < teamCount; i++) {
     const btn = document.createElement("button");
-    btn.innerText = `第 ${i + 1} 組 +${DIFFICULTY_SCORE[questions[current].difficulty]}（${score}）`;
+    btn.innerText = `第 ${i + 1} 組 +${questionScore(questions[current])}（${teamScores[i]}）`;
+
+    if (answeredTeams.has(i)) {
+      btn.disabled = true;
+      btn.classList.add("disabled");
+    }
 
     btn.onclick = () => {
-      if (timeUp) return;
+      if (answeredTeams.has(i)) return;
+
+      teamScores[i] += questionScore(questions[current]);
+      answeredTeams.add(i);
 
       sfxScore.currentTime = 0;
       sfxScore.play();
 
-      teamScores[i] += DIFFICULTY_SCORE[questions[current].difficulty];
       renderTeams();
       renderScoreboard();
     };
 
     teamButtons.appendChild(btn);
-  });
+  }
 }
 
 // ======================
 // 排行榜
 // ======================
 function renderScoreboard() {
-  scoreboard.innerHTML =
-    "<strong>🏆 排行榜</strong><br>" +
-    teamScores
-      .map((s, i) => `第 ${i + 1} 組：${s} 分`)
-      .join("<br>");
-}
+  const ranked = teamScores
+    .map((s, i) => ({ team: i + 1, score: s }))
+    .sort((a, b) => b.score - a.score);
 
-// ======================
-// 工具
-// ======================
-function shuffle(arr) {
-  return [...arr].sort(() => Math.random() - 0.5);
+  scoreboard.innerHTML =
+    "<strong>🏆 排行榜</strong>" +
+    ranked
+      .map((r, i) => {
+        const medal = ["🥇", "🥈", "🥉"][i] || "";
+        return `<div>${medal} 第 ${r.team} 組：${r.score} 分</div>`;
+      })
+      .join("");
 }
