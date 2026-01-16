@@ -18,13 +18,11 @@
 
   <h1>🎮 估字遊戲</h1>
 
-  <!-- 遊戲類型 -->
   <label>遊戲類型</label>
   <select id="gameSelect">
     <option value="imageGuess">看圖估字</option>
   </select>
 
-  <!-- 語言 -->
   <div class="row">
     <label>語言</label>
     <select id="languageSelect">
@@ -34,7 +32,6 @@
     </select>
   </div>
 
-  <!-- 內容群組（聖經 / 其他） -->
   <div class="row">
     <label>內容群組</label>
     <select id="groupSelect" disabled>
@@ -42,7 +39,6 @@
     </select>
   </div>
 
-  <!-- 題目分類（人物 / 地方 / 詞彙…） -->
   <div class="row">
     <label>題目類型</label>
     <select id="categorySelect" disabled>
@@ -50,7 +46,6 @@
     </select>
   </div>
 
-  <!-- 組別 -->
   <label>組別數量</label>
   <select id="teamSelect">
     <option value="1">T1</option>
@@ -59,7 +54,6 @@
     <option value="4">T4</option>
   </select>
 
-  <!-- 輪數 -->
   <label>遊戲輪數</label>
   <select id="roundSelect">
     <option value="1">1 輪</option>
@@ -69,7 +63,6 @@
     <option value="5">5 輪</option>
   </select>
 
-  <!-- 每輪題數 -->
   <label>每輪題數</label>
   <select id="qPerRoundSelect">
     <option value="5">5 題</option>
@@ -77,44 +70,13 @@
     <option value="15">15 題</option>
   </select>
 
-  <!-- 計時 -->
   <label>
-    <input type="checkbox" id="enableTimer" />
-    啟用計時
+    <input type="checkbox" id="enableTimer">
+    啟用倒數計時
   </label>
 
-  <div id="timerOptions" class="hidden">
-
-    <label>計時模式</label>
-    <select id="timerMode">
-      <option value="perQuestion">每題限時</option>
-      <option value="perTeam">每組總時間</option>
-    </select>
-
-    <div id="perQuestionOptions">
-      <label>每題秒數</label>
-      <select id="questionSeconds">
-        <option value="15">15</option>
-        <option value="20">20</option>
-        <option value="30">30</option>
-        <option value="45">45</option>
-      </select>
-    </div>
-
-    <div id="perTeamOptions" class="hidden">
-      <label>每組分鐘</label>
-      <select id="teamMinutes">
-        <option value="2">2</option>
-        <option value="5">5</option>
-        <option value="10">10</option>
-      </select>
-    </div>
-
-  </div>
-
-  <!-- 音效 -->
   <label>
-    <input type="checkbox" id="enableAudio" checked />
+    <input type="checkbox" id="enableAudio" checked>
     啟用音效 / BGM
   </label>
 
@@ -123,38 +85,29 @@
 
 <!-- ================= 遊戲頁 ================= -->
 <div id="game" class="hidden">
+
+  <!-- 倒數（右上） -->
   <div id="timerBox" class="timer hidden"></div>
-  ...
-</div>
 
-  <!-- 每組總時間（per team 模式） -->
-  <div id="teamTimer" class="team-timer hidden"></div>
-
-  <!-- 每題倒數 -->
-  <div id="timerDisplay"></div>
-
+  <!-- 題目標題 -->
   <h2 id="questionTitle"></h2>
 
-  <!-- 圖片題目 -->
+  <!-- 圖片 -->
   <div id="imageRow"></div>
 
-  <!-- 狀態列 -->
-<div id="statusBar">
-  <div id="timer">⏱ 30</div>
-  <button id="showScoreBtn">🏆 排行榜</button>
-</div>
-
-<!-- 排行榜（預設隱藏） -->
-<div id="scoreboard" class="hidden"></div>
-
-
+  <!-- 顯示答案 -->
   <button id="toggleAnswerBtn">顯示答案</button>
   <div id="answer" class="hidden"></div>
 
   <!-- 組別加分 -->
   <div id="teamButtons"></div>
 
+  <!-- 下一題 -->
   <button id="nextBtn">下一題</button>
+
+  <!-- 排行榜 -->
+  <button id="showScoreBtn">🏆 排行榜</button>
+  <div id="scoreboard" class="hidden"></div>
 
 </div>
 
