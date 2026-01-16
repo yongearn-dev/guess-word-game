@@ -37,8 +37,10 @@ let roundCount = 1;
 let questionsPerRound = 5;
 let currentRound = 1;
 
-let timer = 30;
+let timerEnabled = false;
+let timer = 0;
 let timerInterval = null;
+
 
 /* ======================
    分類設定
@@ -95,9 +97,12 @@ const teamButtons = document.getElementById("teamButtons");
 const toggleAnswerBtn = document.getElementById("toggleAnswerBtn");
 const nextBtn = document.getElementById("nextBtn");
 
-const timerBox = document.getElementById("timer");
 const scoreboard = document.getElementById("scoreboard");
 const showScoreBtn = document.getElementById("showScoreBtn");
+
+const enableTimerCheckbox = document.getElementById("enableTimer");
+const timerBox = document.getElementById("timerBox");
+
 
 
 /* ======================
@@ -191,6 +196,8 @@ startBtn.onclick = () => {
   roundCount = Number(roundSelect.value);
   questionsPerRound = Number(qPerRoundSelect.value);
 
+  timerEnabled = enableTimerCheckbox.checked;
+
   teamScores = new Array(teamCount).fill(0);
   usedQuestionIds.clear();
   currentRound = 1;
@@ -235,7 +242,7 @@ function loadQuestion() {
   const q = roundQuestions[currentQuestionIndex];
   if (!q) return;
 
-  startTimer(); // ✅ 一定會執行
+  startTimer(); // ✅ 每題一開始就啟動（或唔啟動）
 
   scoredTeamsThisQuestion.clear();
 
@@ -266,18 +273,35 @@ function loadQuestion() {
 
 function startTimer() {
   clearInterval(timerInterval);
-  timer = 30;
+
+  if (!timerEnabled) {
+    timerBox.classList.add("hidden");
+    return;
+  }
+
+  timer = 30; // ← 之後你可改成設定頁選項
+  timerBox.classList.remove("hidden");
+  timerBox.classList.remove("warning");
   timerBox.innerText = `⏱ ${timer}`;
 
   timerInterval = setInterval(() => {
     timer--;
     timerBox.innerText = `⏱ ${timer}`;
 
+    if (timer <= 5) {
+      timerBox.classList.add("warning");
+    }
+
     if (timer <= 0) {
       clearInterval(timerInterval);
       timerBox.innerText = "⏱ 0";
+      showAnswerAuto();
     }
   }, 1000);
+}
+
+function showAnswerAuto() {
+  answerBox.classList.remove("hidden");
 }
 
 
