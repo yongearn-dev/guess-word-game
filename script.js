@@ -1,386 +1,265 @@
 "use strict";
 
 /* ======================
-   Audio
-====================== */
-const bgm = document.getElementById("bgm");
-const sfxScore = document.getElementById("sfxScore");
-const sfxNext = document.getElementById("sfxNext");
-
-bgm.volume = 0.25;
-sfxScore.volume = 0.8;
-sfxNext.volume = 0.6;
-
-/* ======================
-   Constants
+   基本設定
 ====================== */
 const IMAGE_BASE =
   "https://yongearn-dev.github.io/guess-word-game/images/";
-
 const SHEET_URL =
   "https://opensheet.elk.sh/1nmgda-PSW0qNpEnT65HozbrbK4SPoOlfq3WlEIQSgf4/Sheet1";
 
-/* ======================
-   Game Config (Single Source)
-====================== */
-const gameConfig = {
-  gameType: "imageGuess",
-  language: "",
-  group: "",
-  categories: [],
-  questionsPerRound: 10,
-  advancedDifficulty: false,
-  extremeOnly: false,
-  playMode: "simultaneous",
-  teamCount: 1,
-  roundCount: 1,
-  scoreMode: "standard",
-  timerEnabled: false,
-  timerMode: "perQuestion"
-};
+/* 馬卡龍色（10 隻） */
+const pastelColors = [
+  "#f8b195","#f67280","#c06c84","#6c5b7b","#355c7d",
+  "#f3c1c6","#ffd5cd","#c1e1dc","#d4f0f0","#e0bbe4"
+];
 
 /* ======================
-   State
+   狀態
 ====================== */
 let allQuestions = [];
-let usedQuestionIds = new Set();
-let roundQuestions = [];
-let currentQuestionIndex = 0;
-let currentRound = 1;
+let currentQuestions = [];
+let usedIds = new Set();
 
-let teamScores = [];
-let scoredTeamsThisQuestion = new Set();
+let qIndex = 0;
+let scores = [];
+let teamColors = [];
 
-let timer = 0;
-let timerInterval = null;
-
-/* ======================
-   Maps
-====================== */
-const GROUP_MAP = {
-  zh: [
-    { value: "bible", label: "聖經" },
-    { value: "other", label: "其他" }
-  ],
-  th: [
-    { value: "bible", label: "พระคัมภีร์" },
-    { value: "other", label: "อื่นๆ" }
-  ]
-};
-
-const CATEGORY_MAP = {
-  bible: [
-    { value: "person", label: "人物" },
-    { value: "place", label: "地方" },
-    { value: "vocab", label: "詞彙" }
-  ],
-  other: [
-    { value: "travel", label: "旅行" },
-    { value: "life", label: "生活" },
-    { value: "food", label: "美食" },
-    { value: "knowledge", label: "知識" }
-  ]
-};
+let mode = "standard"; // standard | rush | timed
+let perQuestionTimer = null;
+let teamTimer = null;
+let remainingSeconds = 0;
 
 /* ======================
    DOM
 ====================== */
 const setup = document.getElementById("setup");
-const summary = document.getElementById("summary");
 const game = document.getElementById("game");
 
-const languageSelect = document.getElementById("languageSelect");
-const groupSelect = document.getElementById("groupSelect");
-const categorySelectBox = document.getElementById("categorySelect");
-
-const qPerRoundSelect = document.getElementById("qPerRoundSelect");
-const advancedDifficulty = document.getElementById("advancedDifficulty");
-const difficultyOptions = document.getElementById("difficultyOptions");
-const extremeOnly = document.getElementById("extremeOnly");
-
-const teamSelect = document.getElementById("teamSelect");
-const roundSelect = document.getElementById("roundSelect");
-
-const enableTimer = document.getElementById("enableTimer");
-const timerOptions = document.getElementById("timerOptions");
-
-const toSummaryBtn = document.getElementById("toSummaryBtn");
-const backToSetupBtn = document.getElementById("backToSetupBtn");
-const startBtn = document.getElementById("startBtn");
-
-const summaryList = document.getElementById("summaryList");
-
-const questionTitle = document.getElementById("questionTitle");
 const imageRow = document.getElementById("imageRow");
 const answerBox = document.getElementById("answer");
 const teamButtons = document.getElementById("teamButtons");
-const toggleAnswerBtn = document.getElementById("toggleAnswerBtn");
-const nextBtn = document.getElementById("nextBtn");
 const timerBox = document.getElementById("timerBox");
+const questionTitle = document.getElementById("questionTitle");
 
 /* ======================
-   Init
+   載入題庫
 ====================== */
 fetch(SHEET_URL)
-  .then(res => res.json())
-  .then(data => {
-    allQuestions = data;
-    console.log("題庫載入完成:", data.length);
+  .then(r => r.json())
+  .then(d => {
+    allQuestions = d;
   });
 
 /* ======================
-   Language → Group
+   組別顏色選擇
 ====================== */
-languageSelect.addEventListener("change", () => {
-  gameConfig.language = languageSelect.value;
-  groupSelect.innerHTML = `<option value="">選擇內容大類</option>`;
-  categorySelectBox.innerHTML = "";
-  groupSelect.disabled = !gameConfig.language;
+const teamColorBox = document.getElementById("teamColors");
+const teamCountSelect = document.getElementById("teamCount");
 
-  if (!gameConfig.language) return;
+function renderColorPicker() {
+  teamColorBox.innerHTML = "";
+  teamColors = [];
 
-  GROUP_MAP[gameConfig.language].forEach(g => {
-    const opt = document.createElement("option");
-    opt.value = g.value;
-    opt.textContent = g.label;
-    groupSelect.appendChild(opt);
-  });
-});
+  pastelColors.forEach(color => {
+    const btn = document.createElement("div");
+    btn.className = "color-btn";
+    btn.style.background = color;
 
-/* ======================
-   Group → Categories (Multi)
-====================== */
-groupSelect.addEventListener("change", () => {
-  gameConfig.group = groupSelect.value;
-  categorySelectBox.innerHTML = "";
-  gameConfig.categories = [];
-
-  if (!gameConfig.group) return;
-
-  CATEGORY_MAP[gameConfig.group].forEach(c => {
-    const label = document.createElement("label");
-    const cb = document.createElement("input");
-    cb.type = "checkbox";
-    cb.value = c.value;
-
-    cb.onchange = () => {
-      if (cb.checked) {
-        gameConfig.categories.push(cb.value);
-      } else {
-        gameConfig.categories =
-          gameConfig.categories.filter(v => v !== cb.value);
-      }
+    btn.onclick = () => {
+      if (teamColors.includes(color)) return;
+      btn.classList.add("selected");
+      teamColors.push(color);
     };
 
-    label.appendChild(cb);
-    label.append(" " + c.label);
-    categorySelectBox.appendChild(label);
+    teamColorBox.appendChild(btn);
   });
-});
+}
+renderColorPicker();
 
 /* ======================
-   Difficulty
+   開始遊戲
 ====================== */
-advancedDifficulty.onchange = () => {
-  gameConfig.advancedDifficulty = advancedDifficulty.checked;
-  difficultyOptions.classList.toggle("hidden", !advancedDifficulty.checked);
-};
+document.getElementById("startBtn").onclick = () => {
+  const qCount = Number(document.getElementById("questionCount").value);
+  const teamCount = Number(teamCountSelect.value);
+  mode = document.querySelector("input[name='mode']:checked").value;
 
-extremeOnly.onchange = () => {
-  gameConfig.extremeOnly = extremeOnly.checked;
-};
+  scores = new Array(teamCount).fill(0);
+  qIndex = 0;
+  usedIds.clear();
 
-/* ======================
-   Timer
-====================== */
-enableTimer.onchange = () => {
-  gameConfig.timerEnabled = enableTimer.checked;
-  timerOptions.classList.toggle("hidden", !enableTimer.checked);
-};
-
-/* ======================
-   Summary
-====================== */
-toSummaryBtn.onclick = () => {
-  gameConfig.questionsPerRound = Number(qPerRoundSelect.value);
-  gameConfig.teamCount = Number(teamSelect.value);
-  gameConfig.roundCount =
-    roundSelect.value === "custom" ? 1 : Number(roundSelect.value);
-
-  summaryList.innerHTML = `
-    <li>🎮 遊戲類型：看圖估字</li>
-    <li>🌏 語言：${gameConfig.language}</li>
-    <li>📖 內容：${gameConfig.group}｜${gameConfig.categories.join(" + ")}</li>
-    <li>❓ 題數：${gameConfig.questionsPerRound}</li>
-    <li>⚖️ 難度：${gameConfig.extremeOnly ? "Extreme Only" : "混合"}</li>
-    <li>👥 組別：${gameConfig.teamCount}</li>
-    <li>⏱️ 計時：${gameConfig.timerEnabled ? "開" : "關"}</li>
-  `;
+  // 抽題（避免重複）
+  currentQuestions = allQuestions
+    .filter(q => !usedIds.has(q.id))
+    .sort(() => Math.random() - 0.5)
+    .slice(0, qCount);
 
   setup.classList.add("hidden");
-  summary.classList.remove("hidden");
-};
-
-backToSetupBtn.onclick = () => {
-  summary.classList.add("hidden");
-  setup.classList.remove("hidden");
-};
-
-/* ======================
-   Start Game
-====================== */
-startBtn.onclick = () => {
-  bgm.currentTime = 0;
-  bgm.play().catch(() => {});
-
-  teamScores = new Array(gameConfig.teamCount).fill(0);
-  usedQuestionIds.clear();
-  currentRound = 1;
-
-  summary.classList.add("hidden");
   game.classList.remove("hidden");
 
-  startRound();
+  initTimer();
+  loadQuestion();
 };
 
 /* ======================
-   Game Flow
+   題目顯示
 ====================== */
-function startRound() {
-  currentQuestionIndex = 0;
-  scoredTeamsThisQuestion.clear();
-
-  const pool = allQuestions.filter(q => {
-    if (usedQuestionIds.has(q.id)) return false;
-    if (q.language !== gameConfig.language) return false;
-    if (q.group !== gameConfig.group) return false;
-    if (
-      gameConfig.categories.length &&
-      !gameConfig.categories.includes(q.category)
-    ) return false;
-    if (gameConfig.extremeOnly && q.difficulty !== "extreme") return false;
-    return true;
-  });
-
-  shuffle(pool);
-  roundQuestions = pool.slice(0, gameConfig.questionsPerRound);
-  roundQuestions.forEach(q => usedQuestionIds.add(q.id));
-
-  loadQuestion();
-}
-
 function loadQuestion() {
-  const q = roundQuestions[currentQuestionIndex];
+  clearInterval(perQuestionTimer);
+
+  const q = currentQuestions[qIndex];
   if (!q) return;
 
-  startTimer();
-  scoredTeamsThisQuestion.clear();
-
-  questionTitle.innerText =
-    `第 ${currentRound} 輪 · 第 ${currentQuestionIndex + 1} 題`;
-
+  questionTitle.innerText = `第 ${qIndex + 1} 題`;
   imageRow.innerHTML = "";
-  ["img1", "img2", "img3", "img4"]
+  answerBox.classList.add("hidden");
+  answerBox.innerText = q.answer || "";
+
+  ["img1","img2","img3","img4"]
     .map(k => q[k])
     .filter(Boolean)
-    .forEach((name, i, arr) => {
+    .forEach(src => {
       const img = document.createElement("img");
-      img.src = IMAGE_BASE + name;
+      img.src = IMAGE_BASE + src;
       imageRow.appendChild(img);
-      if (i < arr.length - 1) {
-        imageRow.appendChild(document.createTextNode(" ＋ "));
-      }
     });
-  imageRow.appendChild(document.createTextNode(" ＝？"));
-
-  answerBox.innerText = q.answer;
-  answerBox.classList.add("hidden");
 
   renderTeams();
+  startPerQuestionTimer();
 }
 
 /* ======================
-   Timer
-====================== */
-function startTimer() {
-  clearInterval(timerInterval);
-
-  if (!gameConfig.timerEnabled) {
-    timerBox.classList.add("hidden");
-    return;
-  }
-
-  timer = 30;
-  timerBox.classList.remove("hidden", "warning");
-  timerBox.innerText = `⏱ ${timer}`;
-
-  timerInterval = setInterval(() => {
-    timer--;
-    timerBox.innerText = `⏱ ${timer}`;
-    if (timer <= 5) timerBox.classList.add("warning");
-    if (timer <= 0) {
-      clearInterval(timerInterval);
-      answerBox.classList.remove("hidden");
-    }
-  }, 1000);
-}
-
-/* ======================
-   Teams
+   組別按鈕
 ====================== */
 function renderTeams() {
   teamButtons.innerHTML = "";
 
-  for (let i = 0; i < gameConfig.teamCount; i++) {
+  scores.forEach((score, i) => {
     const btn = document.createElement("button");
-    btn.innerText = `第 ${i + 1} 組 ＋1（${teamScores[i]}）`;
-    btn.disabled = scoredTeamsThisQuestion.has(i);
+    btn.style.background = teamColors[i] || "#ccc";
 
-    btn.onclick = () => {
-      if (scoredTeamsThisQuestion.has(i)) return;
-      teamScores[i]++;
-      scoredTeamsThisQuestion.add(i);
-      sfxScore.currentTime = 0;
-      sfxScore.play();
-      renderTeams();
-    };
+    if (mode === "rush") {
+      btn.innerText = `組 ${i + 1} (${score})`;
+      btn.onclick = () => rushCorrect(i);
+    } else {
+      btn.innerText = `組 ${i + 1} +1 (${score})`;
+      btn.onclick = () => {
+        scores[i]++;
+        renderTeams();
+      };
+    }
 
     teamButtons.appendChild(btn);
+  });
+}
+
+/* ======================
+   搶答模式規則
+====================== */
+let rushAnswered = false;
+
+function rushCorrect(teamIndex) {
+  if (rushAnswered) return;
+
+  scores[teamIndex] += 3;
+  rushAnswered = true;
+  renderTeams();
+  nextQuestion();
+}
+
+function rushWrong(teamIndex) {
+  scores[teamIndex] = Math.max(0, scores[teamIndex] - 1);
+  renderTeams();
+}
+
+/* ======================
+   顯示答案
+====================== */
+document.getElementById("toggleAnswerBtn").onclick = () => {
+  answerBox.classList.remove("hidden");
+};
+
+/* ======================
+   下一題
+====================== */
+document.getElementById("nextBtn").onclick = () => {
+  nextQuestion();
+};
+
+function nextQuestion() {
+  rushAnswered = false;
+  qIndex++;
+
+  if (qIndex >= currentQuestions.length) {
+    endGame();
+  } else {
+    loadQuestion();
   }
 }
 
 /* ======================
-   Controls
+   計時系統
 ====================== */
-toggleAnswerBtn.onclick = () => {
-  answerBox.classList.remove("hidden");
-};
+function initTimer() {
+  timerBox.classList.add("hidden");
 
-nextBtn.onclick = () => {
-  sfxNext.currentTime = 0;
-  sfxNext.play();
+  const enableTeamTimer =
+    document.getElementById("enableTeamTimer").checked &&
+    mode === "timed";
 
-  currentQuestionIndex++;
-  if (currentQuestionIndex >= roundQuestions.length) {
-    currentRound++;
-    if (currentRound > gameConfig.roundCount) {
-      alert("🎉 遊戲完成");
-      game.classList.add("hidden");
-      setup.classList.remove("hidden");
-    } else {
-      startRound();
-    }
-  } else {
-    loadQuestion();
+  if (enableTeamTimer) {
+    remainingSeconds = Number(
+      document.getElementById("teamTotalTime").value
+    );
+    timerBox.classList.remove("hidden");
+    updateTimerUI();
+
+    teamTimer = setInterval(() => {
+      remainingSeconds--;
+      updateTimerUI();
+      if (remainingSeconds <= 0) endGame();
+    }, 1000);
   }
-};
+}
+
+function startPerQuestionTimer() {
+  const enableTimer = document.getElementById("enableTimer").checked;
+  if (!enableTimer) return;
+
+  let seconds = Number(
+    document.getElementById("perQuestionTime").value
+  );
+
+  timerBox.classList.remove("hidden");
+  timerBox.innerText = seconds;
+
+  perQuestionTimer = setInterval(() => {
+    seconds--;
+    timerBox.innerText = seconds;
+    if (seconds <= 0) {
+      clearInterval(perQuestionTimer);
+      nextQuestion();
+    }
+  }, 1000);
+}
+
+function updateTimerUI() {
+  timerBox.innerText = `${remainingSeconds}s`;
+}
 
 /* ======================
-   Utils
+   遊戲結束
 ====================== */
-function shuffle(arr) {
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
+function endGame() {
+  clearInterval(perQuestionTimer);
+  clearInterval(teamTimer);
+
+  let result = "🏁 遊戲結束\n\n";
+  scores.forEach((s, i) => {
+    result += `組 ${i + 1}：${s} 分\n`;
+  });
+
+  alert(result);
+  location.reload();
 }
