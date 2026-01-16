@@ -1,7 +1,7 @@
 "use strict";
 
 /* ======================
-   音效
+   Audio
 ====================== */
 const bgm = document.getElementById("bgm");
 const sfxScore = document.getElementById("sfxScore");
@@ -12,7 +12,7 @@ sfxScore.volume = 0.8;
 sfxNext.volume = 0.6;
 
 /* ======================
-   基本設定
+   常數
 ====================== */
 const IMAGE_BASE =
   "https://yongearn-dev.github.io/guess-word-game/images/";
@@ -37,10 +37,12 @@ let roundCount = 1;
 let questionsPerRound = 5;
 let currentRound = 1;
 
-let timerEnabled = false;
+/* timer */
+let enableTimer = false;
+let timerMode = "perQuestion";
+let questionTimeLimit = 30;
 let timer = 0;
 let timerInterval = null;
-
 
 /* ======================
    分類設定
@@ -86,6 +88,10 @@ const teamSelect = document.getElementById("teamSelect");
 const roundSelect = document.getElementById("roundSelect");
 const qPerRoundSelect = document.getElementById("qPerRoundSelect");
 
+const enableTimerCheckbox = document.getElementById("enableTimer");
+const timerModeSelect = document.getElementById("timerMode");
+const questionSecondsSelect = document.getElementById("questionSeconds");
+
 const startBtn = document.getElementById("startBtn");
 
 const questionTitle = document.getElementById("questionTitle");
@@ -93,28 +99,15 @@ const imageRow = document.getElementById("imageRow");
 const answerBox = document.getElementById("answer");
 
 const teamButtons = document.getElementById("teamButtons");
-
 const toggleAnswerBtn = document.getElementById("toggleAnswerBtn");
 const nextBtn = document.getElementById("nextBtn");
 
-const scoreboard = document.getElementById("scoreboard");
-const showScoreBtn = document.getElementById("showScoreBtn");
-
-const enableTimerCheckbox = document.getElementById("enableTimer");
 const timerBox = document.getElementById("timerBox");
 
-
-
 /* ======================
-   初始化 Select
+   初始化
 ====================== */
 function initSelectors() {
-  languageSelect.innerHTML = `
-    <option value="">選擇語言</option>
-    <option value="zh">中文</option>
-    <option value="th">ไทย</option>
-  `;
-
   groupSelect.innerHTML = `<option value="">請先選語言</option>`;
   groupSelect.disabled = true;
 
@@ -124,11 +117,10 @@ function initSelectors() {
 initSelectors();
 
 /* ======================
-   語言 → 大分類
+   語言 → 群組
 ====================== */
 languageSelect.addEventListener("change", () => {
   const lang = languageSelect.value;
-
   groupSelect.innerHTML = "";
   categorySelect.innerHTML = `<option value="">請先選分類</option>`;
   categorySelect.disabled = true;
@@ -140,7 +132,7 @@ languageSelect.addEventListener("change", () => {
   }
 
   groupSelect.disabled = false;
-  groupSelect.innerHTML = `<option value="">選擇分類</option>`;
+  groupSelect.innerHTML = `<option value="">選擇群組</option>`;
 
   GROUP_MAP[lang].forEach(g => {
     const opt = document.createElement("option");
@@ -151,7 +143,7 @@ languageSelect.addEventListener("change", () => {
 });
 
 /* ======================
-   大分類 → 子分類
+   群組 → 題型
 ====================== */
 groupSelect.addEventListener("change", () => {
   const group = groupSelect.value;
@@ -182,13 +174,13 @@ fetch(SHEET_URL)
   .then(data => {
     allQuestions = data;
     startBtn.disabled = false;
-    console.log("題目載入完成:", data.length);
   });
 
 /* ======================
-   開始遊戲（含音樂）
+   開始遊戲
 ====================== */
 startBtn.onclick = () => {
+  // Safari audio unlock
   bgm.currentTime = 0;
   bgm.play().catch(() => {});
 
@@ -196,7 +188,11 @@ startBtn.onclick = () => {
   roundCount = Number(roundSelect.value);
   questionsPerRound = Number(qPerRoundSelect.value);
 
-  timerEnabled = enableTimerCheckbox.checked;
+  enableTimer = enableTimerCheckbox.checked;
+  if (enableTimer) {
+    timerMode = timerModeSelect.value;
+    questionTimeLimit = parseInt(questionSecondsSelect.value, 10);
+  }
 
   teamScores = new Array(teamCount).fill(0);
   usedQuestionIds.clear();
@@ -242,8 +238,6 @@ function loadQuestion() {
   const q = roundQuestions[currentQuestionIndex];
   if (!q) return;
 
-  startTimer(); // ✅ 每題一開始就啟動（或唔啟動）
-
   scoredTeamsThisQuestion.clear();
 
   questionTitle.innerText =
@@ -258,9 +252,8 @@ function loadQuestion() {
       const img = document.createElement("img");
       img.src = IMAGE_BASE + name;
       imageRow.appendChild(img);
-      if (i < arr.length - 1) {
+      if (i < arr.length - 1)
         imageRow.appendChild(document.createTextNode(" ＋ "));
-      }
     });
 
   imageRow.appendChild(document.createTextNode(" ＝？"));
@@ -269,44 +262,42 @@ function loadQuestion() {
   answerBox.classList.add("hidden");
 
   renderTeams();
+  startTimer();
 }
 
+/* ======================
+   Timer
+====================== */
 function startTimer() {
   clearInterval(timerInterval);
 
-  if (!timerEnabled) {
+  if (!enableTimer || timerMode !== "perQuestion") {
     timerBox.classList.add("hidden");
     return;
   }
 
-  timer = 30; // ← 之後你可改成設定頁選項
+  timer = questionTimeLimit;
   timerBox.classList.remove("hidden");
-  timerBox.classList.remove("warning");
   timerBox.innerText = `⏱ ${timer}`;
 
   timerInterval = setInterval(() => {
     timer--;
     timerBox.innerText = `⏱ ${timer}`;
 
-    if (timer <= 5) {
-      timerBox.classList.add("warning");
-    }
-
     if (timer <= 0) {
       clearInterval(timerInterval);
       timerBox.innerText = "⏱ 0";
-      showAnswerAuto();
+      showAnswerAutomatically();
     }
   }, 1000);
 }
 
-function showAnswerAuto() {
+function showAnswerAutomatically() {
   answerBox.classList.remove("hidden");
 }
 
-
 /* ======================
-   隊伍加分
+   隊伍
 ====================== */
 function renderTeams() {
   teamButtons.innerHTML = "";
@@ -314,7 +305,6 @@ function renderTeams() {
   for (let i = 0; i < teamCount; i++) {
     const btn = document.createElement("button");
     btn.innerText = `第 ${i + 1} 組 ＋1（${teamScores[i]}）`;
-
     btn.disabled = scoredTeamsThisQuestion.has(i);
 
     btn.onclick = () => {
@@ -331,15 +321,12 @@ function renderTeams() {
 }
 
 /* ======================
-   顯示答案
+   操作
 ====================== */
 toggleAnswerBtn.onclick = () => {
   answerBox.classList.remove("hidden");
 };
 
-/* ======================
-   下一題
-====================== */
 nextBtn.onclick = () => {
   sfxNext.currentTime = 0;
   sfxNext.play();
