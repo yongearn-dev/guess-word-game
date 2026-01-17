@@ -12,11 +12,8 @@ if (sfxScore) sfxScore.volume = 0.8;
 /* ======================
    Constants
 ====================== */
-const IMAGE_BASE =
-  "https://yongearn-dev.github.io/guess-word-game/images/";
-
-const SHEET_URL =
-  "https://opensheet.elk.sh/1nmgda-PSW0qNpEnT65HozbrbK4SPoOlfq3WlEIQSgf4/Sheet1";
+const IMAGE_BASE = "https://yongearn-dev.github.io/guess-word-game/images/";
+const SHEET_URL = "https://opensheet.elk.sh/1nmgda-PSW0qNpEnT65HozbrbK4SPoOlfq3WlEIQSgf4/Sheet1";
 
 const DIFFICULTY_SCORE = {
   easy: 1,
@@ -41,12 +38,8 @@ let currentIndex = 0;
 let teamScores = [];
 let activeTeam = 0;
 
-let currentRound = 1;
-let totalRounds = gameConfig.rounds;
-
 let timerInterval = null;
 let remainingTime = 0;
-let dataReady = false;
 
 /* ======================
    Config
@@ -62,11 +55,11 @@ const gameConfig = {
   timer: {
     enabled: false,
     perQuestion: 30,
-    total: 180
+    total: 300
   },
 
   extremeOnly: false,
-  teams: 2
+  teams: 3
 };
 
 /* ======================
@@ -86,10 +79,14 @@ const timeAttackOptions = document.getElementById("timeAttackOptions");
 const enablePerQuestionTimer = document.getElementById("enablePerQuestionTimer");
 const perQuestionTimerOptions = document.getElementById("perQuestionTimerOptions");
 
+const advancedDifficulty = document.getElementById("advancedDifficulty");
+const difficultyOptions = document.getElementById("difficultyOptions");
 const extremeOnly = document.getElementById("extremeOnly");
+
 const teamSelect = document.getElementById("teamSelect");
 
 const toSummaryBtn = document.getElementById("toSummaryBtn");
+const backToSetupBtn = document.getElementById("backToSetupBtn");
 const startBtn = document.getElementById("startBtn");
 
 const summaryList = document.getElementById("summaryList");
@@ -135,11 +132,7 @@ const CATEGORY_MAP = {
 ====================== */
 fetch(SHEET_URL)
   .then(r => r.json())
-  .then(data => {
-    allQuestions = data;
-    dataReady = true;
-    console.log("Questions loaded:", data.length);
-  });
+  .then(data => allQuestions = data);
 
 /* ======================
    Language / Group / Category
@@ -174,12 +167,11 @@ groupSelect.onchange = () => {
     cb.type = "checkbox";
     cb.value = c.value;
     cb.onchange = () => {
-      if (cb.checked) gameConfig.categories.push(cb.value);
-      else gameConfig.categories =
-        gameConfig.categories.filter(v => v !== cb.value);
+      cb.checked
+        ? gameConfig.categories.push(cb.value)
+        : gameConfig.categories = gameConfig.categories.filter(v => v !== cb.value);
     };
-    label.appendChild(cb);
-    label.append(" " + c.label);
+    label.append(cb, " " + c.label);
     categorySelect.appendChild(label);
   });
 };
@@ -196,19 +188,12 @@ document.querySelectorAll("input[name=gameMode]").forEach(r => {
 });
 
 /* ======================
-   Timer
-====================== */
-enablePerQuestionTimer.onchange = () => {
-  gameConfig.timer.enabled = enablePerQuestionTimer.checked;
-  perQuestionTimerOptions.classList.toggle("hidden", !enablePerQuestionTimer.checked);
-};
-
-/* ======================
    Difficulty
 ====================== */
 advancedDifficulty.onchange = () => {
-  gameConfig.advanced = advancedDifficulty.checked;
   difficultyOptions.classList.toggle("hidden", !advancedDifficulty.checked);
+  gameConfig.extremeOnly = false;
+  extremeOnly.checked = false;
 };
 
 extremeOnly.onchange = () => {
@@ -222,15 +207,11 @@ toSummaryBtn.onclick = () => {
   gameConfig.questionsPerRound =
     Number(document.querySelector("input[name=qPerRound]:checked").value);
   gameConfig.teams = Number(teamSelect.value);
-  gameConfig.extremeOnly = extremeOnly.checked;
 
   summaryList.innerHTML = `
-    <li>🎮 Image Guess</li>
-    <li>🌏 Language: ${gameConfig.language || "All"}</li>
-    <li>📖 Content: ${gameConfig.group || "All"} ${gameConfig.categories.length ? "｜" + gameConfig.categories.join(", ") : ""}</li>
-    <li>❓ Questions: ${gameConfig.mode === "standard" ? gameConfig.questionsPerRound : "Unlimited"}</li>
-    <li>⚖️ Difficulty: ${gameConfig.extremeOnly ? "Extreme Only ⚠️" : "Mixed"}</li>
-    <li>👥 Teams: ${gameConfig.teams}</li>
+    <li>Mode: ${gameConfig.mode}</li>
+    <li>Questions: ${gameConfig.mode === "standard" ? gameConfig.questionsPerRound : "Unlimited"}</li>
+    <li>Teams: ${gameConfig.teams}</li>
   `;
 
   setup.classList.add("hidden");
@@ -246,11 +227,10 @@ backToSetupBtn.onclick = () => {
    Start Game
 ====================== */
 startBtn.onclick = () => {
-  bgm.currentTime = 0;
-  bgm.play().catch(() => {});
+  bgm.play().catch(()=>{});
 
   teamScores = new Array(gameConfig.teams).fill(0);
-  usedIds.clear();
+  activeTeam = 0;
   currentIndex = 0;
 
   buildQuestionQueue();
@@ -263,36 +243,7 @@ startBtn.onclick = () => {
 };
 
 /* ======================
-   Team Flow
-====================== */
-function startTeam() {
-  currentIndex = 0;
-  buildQuestionQueue();
-
-  summary.classList.add("hidden");
-  game.classList.remove("hidden");
-
-  questionTitle.textContent =
-    gameConfig.mode === "timeAttack"
-      ? `Team ${activeTeam + 1}`
-      : "Question";
-
-  if (gameConfig.mode === "timeAttack") startTotalTimer();
-  else timerBox.classList.add("hidden");
-
-  loadQuestion();
-}
-
-function nextTeam() {
-  clearInterval(timerInterval);
-  activeTeam++;
-
-  if (activeTeam < gameConfig.teams) startTeam();
-  else showEndScreen();
-}
-
-/* ======================
-   Queue (SAFE FILTER)
+   Queue
 ====================== */
 function buildQuestionQueue() {
   let pool = allQuestions.filter(q => {
@@ -303,34 +254,32 @@ function buildQuestionQueue() {
     return true;
   });
 
-  if (pool.length === 0) pool = [...allQuestions]; // safety net
-
+  if (!pool.length) pool = [...allQuestions];
   shuffle(pool);
 
-  if (gameConfig.mode === "timeAttack") {
+  if (gameConfig.mode === "standard") {
+    const dist = AUTO_DISTRIBUTION[gameConfig.questionsPerRound];
+    questionQueue = [];
+    Object.keys(dist).forEach(d => {
+      questionQueue.push(...pool.filter(q => q.difficulty === d).slice(0, dist[d]));
+    });
+    shuffle(questionQueue);
+  } else {
     questionQueue = pool;
-    return;
   }
-
-  questionQueue = [];
-  const dist = AUTO_DISTRIBUTION[gameConfig.questionsPerRound];
-
-  Object.keys(dist).forEach(d => {
-    questionQueue.push(...pool.filter(q => q.difficulty === d).slice(0, dist[d]));
-  });
-
-  if (questionQueue.length === 0) questionQueue = pool.slice(0, gameConfig.questionsPerRound);
-  shuffle(questionQueue);
 }
 
 /* ======================
    Question
 ====================== */
 function loadQuestion() {
-  const q = questionQueue[currentIndex];
-  if (!q) { nextTeam(); return; }
+  if (gameConfig.mode === "standard" && currentIndex >= gameConfig.questionsPerRound) {
+    return showEndScreen();
+  }
 
+  const q = questionQueue[currentIndex % questionQueue.length];
   imageRow.innerHTML = "";
+
   ["img1","img2","img3","img4"]
     .map(k => q[k])
     .filter(Boolean)
@@ -343,57 +292,23 @@ function loadQuestion() {
   answerBox.textContent = q.answer;
   answerBox.classList.add("hidden");
 
-  renderScoreButton(q.difficulty);
-
-  if (gameConfig.mode === "standard" && gameConfig.timer.enabled)
-    startPerQuestionTimer();
+  renderScoreButtons(q.difficulty);
 }
 
 /* ======================
    Scoring
 ====================== */
-function renderScoreButton(diff) {
+function renderScoreButtons(diff) {
   teamButtons.innerHTML = "";
-  const btn = document.createElement("button");
-  btn.textContent = `+${DIFFICULTY_SCORE[diff]} pts`;
-  btn.onclick = () => teamScores[activeTeam] += DIFFICULTY_SCORE[diff];
-  teamButtons.appendChild(btn);
-}
-
-/* ======================
-   Timers
-====================== */
-function startPerQuestionTimer() {
-  clearInterval(timerInterval);
-  remainingTime = gameConfig.timer.perQuestion;
-  timerBox.classList.remove("hidden","warning");
-
-  timerInterval = setInterval(() => {
-    remainingTime--;
-    timerBox.textContent = `⏱ ${remainingTime}`;
-    if (remainingTime <= 5) timerBox.classList.add("warning");
-    if (remainingTime <= 0) {
-      clearInterval(timerInterval);
-      answerBox.classList.remove("hidden");
-    }
-  }, 1000);
-}
-
-function startTotalTimer() {
-  clearInterval(timerInterval);
-  remainingTime = gameConfig.timer.total;
-  timerBox.classList.remove("hidden","warning");
-
-  timerInterval = setInterval(() => {
-    remainingTime--;
-    timerBox.textContent =
-      `⏱ ${Math.floor(remainingTime/60)}:${String(remainingTime%60).padStart(2,"0")}`;
-    if (remainingTime <= 10) timerBox.classList.add("warning");
-    if (remainingTime <= 0) {
-      clearInterval(timerInterval);
-      nextTeam();
-    }
-  }, 1000);
+  for (let i = 0; i < gameConfig.teams; i++) {
+    const btn = document.createElement("button");
+    btn.textContent = `Team ${i+1} +${DIFFICULTY_SCORE[diff]}`;
+    btn.onclick = () => {
+      teamScores[i] += DIFFICULTY_SCORE[diff];
+      sfxScore?.play();
+    };
+    teamButtons.appendChild(btn);
+  }
 }
 
 /* ======================
@@ -409,7 +324,27 @@ toggleAnswerBtn.onclick = () => {
 };
 
 /* ======================
-   End Screen
+   Timer (Time Attack)
+====================== */
+function startTotalTimer() {
+  remainingTime = gameConfig.timer.total;
+  timerBox.classList.remove("hidden");
+
+  timerInterval = setInterval(() => {
+    remainingTime--;
+    timerBox.textContent =
+      `⏱ ${Math.floor(remainingTime/60)}:${String(remainingTime%60).padStart(2,"0")}`;
+    if (remainingTime <= 0) {
+      clearInterval(timerInterval);
+      activeTeam++;
+      if (activeTeam >= gameConfig.teams) showEndScreen();
+      else startTotalTimer();
+    }
+  }, 1000);
+}
+
+/* ======================
+   End
 ====================== */
 function showEndScreen() {
   game.classList.add("hidden");
@@ -418,7 +353,7 @@ function showEndScreen() {
   summaryList.innerHTML = teamScores
     .map((s,i)=>({team:i+1,score:s}))
     .sort((a,b)=>b.score-a.score)
-    .map((r,i)=>`<li>${["🥇","🥈","🥉"][i]||"🎮"} Team ${r.team} — ${r.score} pts</li>`)
+    .map((r,i)=>`<li>${["🥇","🥈","🥉"][i]||"🎮"} Team ${r.team} — ${r.score}</li>`)
     .join("");
 
   startBtn.textContent = "⬅ Back to Home";
