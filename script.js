@@ -5,8 +5,11 @@
 ====================== */
 const bgm = document.getElementById("bgm");
 const sfxScore = document.getElementById("sfxScore");
-if (bgm) bgm.volume = 0.25;
-if (sfxScore) sfxScore.volume = 0.8;
+const sfxNext = document.getElementById("sfxNext");
+
+bgm.volume = 0.25;
+sfxScore.volume = 0.8;
+sfxNext.volume = 0.6;
 
 /* ======================
    Constants
