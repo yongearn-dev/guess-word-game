@@ -3,171 +3,128 @@
 <head>
   <meta charset="UTF-8" />
   <title>估字遊戲</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-  <!-- CSS -->
   <link rel="stylesheet" href="style.css" />
 </head>
+
 <body>
 
-<!-- ======================
-  設定畫面
-====================== -->
-<div class="card" id="setup">
-
-  <h1>🎮 遊戲設定</h1>
-
-  <!-- ① 遊戲類型 -->
-  <section>
-    <h2>① 遊戲類型</h2>
-    <label>
-      <input type="radio" name="gameType" value="imagesGuess" checked />
-      看圖估字
-    </label>
-    <label>
-      <input type="radio" name="gameType" value="wordGuess" />
-      禁言估字
-    </label>
-  </section>
-
-  <!-- ② 題目分類 -->
-  <section>
-    <h2>② 題目分類</h2>
-    <div class="checkbox-group" id="categoryOptions">
-      <!-- JS 動態產生 -->
-    </div>
-  </section>
-
-  <!-- ③ 題數 -->
-  <section>
-    <h2>③ 題目數量</h2>
-    <select id="questionCount">
-      <option value="5">5 題</option>
-      <option value="10" selected>10 題</option>
-      <option value="15">15 題</option>
-      <option value="20">20 題</option>
-    </select>
-  </section>
-
-  <!-- ④ 玩家 / 組別 -->
-  <section>
-    <h2>④ 玩家 / 組別</h2>
-    <select id="teamCount">
-      <option value="2">2 組</option>
-      <option value="3" selected>3 組</option>
-      <option value="4">4 組</option>
-      <option value="5">5 組</option>
-    </select>
-  </section>
-
-  <!-- ⑤ 遊戲模式 -->
-  <section>
-    <h2>⑤ 遊戲模式</h2>
-    <label>
-      <input type="radio" name="scoreMode" value="standard" checked />
-      標準模式（輪流作答）
-    </label>
-    <label>
-      <input type="radio" name="scoreMode" value="quick" />
-      搶答模式
-    </label>
-  </section>
-
-  <!-- ⑥ 題目規則 -->
-  <section>
-    <h2>⑥ 題目規則</h2>
-    <label>
-      <input type="radio" name="answerRule" value="single" checked />
-      每題只可 1 組得分
-    </label>
-    <label>
-      <input type="radio" name="answerRule" value="multiple" />
-      多組可得分
-    </label>
-  </section>
-
-  <!-- ⑦ 時間規則 -->
-  <section>
-    <h2>⑦ 時間規則</h2>
-    <label>
-      <input type="radio" name="timeMode" value="none" checked />
-      不限時
-    </label>
-    <label>
-      <input type="radio" name="timeMode" value="timed" />
-      限時
-    </label>
-
-    <div id="timeOptions" class="hidden">
-      <select id="timeLimit">
-        <option value="10">10 秒</option>
-        <option value="15" selected>15 秒</option>
-        <option value="20">20 秒</option>
-      </select>
-    </div>
-  </section>
-
-  <button id="goSummaryBtn">下一步 ▶</button>
-</div>
-
-<!-- ======================
-  Summary
-====================== -->
-<div class="card hidden" id="summary">
-
-  <h1>📋 遊戲設定總覽</h1>
-
-  <div id="summaryContent">
-    <!-- JS 填入 -->
-  </div>
-
-  <button id="startGameBtn">開始遊戲 ▶</button>
-</div>
-
-<!-- ======================
-  遊戲畫面
-====================== -->
-<div class="hidden" id="game">
-
-  <!-- Timer -->
-  <div class="timer hidden" id="timer">15</div>
-
-  <h2 id="questionTitle">第 1 題</h2>
-
-  <!-- 圖片 / 題目 -->
-  <div id="imageRow">
-    <!-- img / + / = ? 由 JS 控制 -->
-  </div>
-
-  <!-- 答案 -->
-  <div id="answer" class="hidden"></div>
-
-  <!-- 組別按鈕 -->
-  <div id="teamButtons">
-    <!-- JS 產生 -->
-  </div>
-
-  <!-- 下一題 -->
-  <div style="text-align:center;">
-    <button id="nextBtn">下一題 ▶</button>
-  </div>
-
-  <!-- 排行榜 -->
-  <div id="scoreboard">
-    <!-- JS 更新 -->
-  </div>
-
-</div>
-
-<!-- ======================
-  音效
-====================== -->
+<!-- Audio -->
 <audio id="bgm" src="audio/bgm.mp3" loop></audio>
 <audio id="sfxScore" src="audio/score.mp3"></audio>
 <audio id="sfxNext" src="audio/next.mp3"></audio>
 
-<!-- JS -->
-<script src="script.js"></script>
+<!-- ================= 設定頁 ================= -->
+<div id="setup" class="card">
 
+  <h1>🎮 遊戲設定</h1>
+
+  <!-- ① 遊戲類型 -->
+  <section class="section">
+    <h3>① 遊戲類型</h3>
+    <label><input type="radio" name="gameType" value="imageGuess" checked> 看圖估字</label>
+    <label><input type="radio" name="gameType" value="wordGuess"> 禁言估字</label>
+  </section>
+
+  <!-- ② 題目分類 -->
+  <section class="section">
+    <h3>② 題目分類</h3>
+
+    <label>語言</label>
+    <select id="languageSelect" class="big-select">
+      <option value="">請選擇</option>
+      <option value="zh">中文</option>
+      <option value="th">ไทย</option>
+    </select>
+
+    <label>內容大類</label>
+    <select id="groupSelect" class="big-select" disabled>
+      <option value="">請先選語言</option>
+    </select>
+
+    <label>內容分類</label>
+    <select id="categorySelect" class="big-select" disabled>
+      <option value="">請先選分類</option>
+    </select>
+  </section>
+
+  <!-- ③ 題目規則 -->
+  <section class="section">
+    <h3>③ 題目規則</h3>
+
+    <label>題目數量</label>
+    <select id="questionCount" class="big-select">
+      <option value="5">5 題</option>
+      <option value="10">10 題</option>
+      <option value="15" selected>15 題</option>
+    </select>
+
+    <label>每題限時（秒）</label>
+    <select id="perQuestionTime" class="big-select">
+      <option value="15">15</option>
+      <option value="20">20</option>
+      <option value="30" selected>30</option>
+      <option value="45">45</option>
+    </select>
+  </section>
+
+  <!-- ④ 玩家 / 組別 -->
+  <section class="section">
+    <h3>④ 玩家 / 組別</h3>
+
+    <label>組別數量</label>
+    <select id="teamCount" class="big-select">
+      <option value="1">1 組</option>
+      <option value="2">2 組</option>
+      <option value="3" selected>3 組</option>
+      <option value="4">4 組</option>
+      <option value="5">5 組</option>
+      <option value="6">6 組</option>
+    </select>
+
+    <div id="teamColorPicker" class="color-grid">
+      <!-- JS 生成顏色 -->
+    </div>
+  </section>
+
+  <!-- ⑤ 遊戲模式 -->
+  <section class="section">
+    <h3>⑤ 遊戲模式</h3>
+
+    <label><input type="radio" name="mode" value="standard" checked> 標準模式（每組各自玩）</label>
+    <label><input type="radio" name="mode" value="rush"> 搶答模式</label>
+    <label><input type="radio" name="mode" value="timed"> 限時模式</label>
+
+    <div id="timedOptions" class="sub hidden">
+      <label>每組總時間（分鐘）</label>
+      <select id="teamTotalTime" class="big-select">
+        <option value="3">3 分鐘</option>
+        <option value="5">5 分鐘</option>
+        <option value="10">10 分鐘</option>
+      </select>
+    </div>
+  </section>
+
+  <button id="startBtn">開始遊戲</button>
+</div>
+
+<!-- ================= 遊戲頁 ================= -->
+<div id="game" class="hidden">
+
+  <div id="timerBox" class="timer hidden"></div>
+
+  <h2 id="questionTitle"></h2>
+
+  <div id="imageRow"></div>
+
+  <button id="toggleAnswerBtn">顯示答案</button>
+  <div id="answer" class="hidden"></div>
+
+  <div id="teamButtons"></div>
+
+  <button id="nextBtn">下一題</button>
+
+</div>
+
+<script src="script.js"></script>
 </body>
 </html>
