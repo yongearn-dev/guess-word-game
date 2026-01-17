@@ -5,11 +5,9 @@
 ====================== */
 const bgm = document.getElementById("bgm");
 const sfxScore = document.getElementById("sfxScore");
-const sfxNext = document.getElementById("sfxNext");
 
 if (bgm) bgm.volume = 0.25;
 if (sfxScore) sfxScore.volume = 0.8;
-if (sfxNext) sfxNext.volume = 0.6;
 
 /* ======================
    Constants
@@ -46,28 +44,20 @@ let activeTeam = 0;
 let timerInterval = null;
 let remainingTime = 0;
 
+let dataReady = false;
+
 /* ======================
    Config
 ====================== */
 const gameConfig = {
-  language: "",
-  group: "",
-  categories: [],
-
   mode: "standard",
-
   questionsPerRound: 10,
-  rounds: 1,
-
   timer: {
     enabled: false,
     perQuestion: 30,
     total: 180
   },
-
-  advanced: false,
   extremeOnly: false,
-
   teams: 2
 };
 
@@ -78,24 +68,16 @@ const setup = document.getElementById("setup");
 const summary = document.getElementById("summary");
 const game = document.getElementById("game");
 
-const languageSelect = document.getElementById("languageSelect");
-const groupSelect = document.getElementById("groupSelect");
-const categorySelect = document.getElementById("categorySelect");
-
 const standardOptions = document.getElementById("standardOptions");
 const timeAttackOptions = document.getElementById("timeAttackOptions");
 
 const enablePerQuestionTimer = document.getElementById("enablePerQuestionTimer");
 const perQuestionTimerOptions = document.getElementById("perQuestionTimerOptions");
 
-const advancedDifficulty = document.getElementById("advancedDifficulty");
-const difficultyOptions = document.getElementById("difficultyOptions");
 const extremeOnly = document.getElementById("extremeOnly");
-
 const teamSelect = document.getElementById("teamSelect");
 
 const toSummaryBtn = document.getElementById("toSummaryBtn");
-const backToSetupBtn = document.getElementById("backToSetupBtn");
 const startBtn = document.getElementById("startBtn");
 
 const summaryList = document.getElementById("summaryList");
@@ -109,17 +91,18 @@ const nextBtn = document.getElementById("nextBtn");
 const timerBox = document.getElementById("timerBox");
 
 /* ======================
-   Data Load
+   Load Data
 ====================== */
 fetch(SHEET_URL)
   .then(r => r.json())
   .then(data => {
     allQuestions = data;
+    dataReady = true;
     console.log("Questions loaded:", data.length);
   });
 
 /* ======================
-   Mode Switch
+   Mode
 ====================== */
 document.querySelectorAll("input[name=gameMode]").forEach(r => {
   r.onchange = () => {
@@ -130,12 +113,20 @@ document.querySelectorAll("input[name=gameMode]").forEach(r => {
 });
 
 /* ======================
-   Timers
+   Timer Options
 ====================== */
 enablePerQuestionTimer.onchange = () => {
   gameConfig.timer.enabled = enablePerQuestionTimer.checked;
   perQuestionTimerOptions.classList.toggle("hidden", !enablePerQuestionTimer.checked);
 };
+
+document.querySelectorAll("input[name=perQuestionTime]").forEach(r => {
+  r.onchange = () => gameConfig.timer.perQuestion = Number(r.value);
+});
+
+document.querySelectorAll("input[name=totalTime]").forEach(r => {
+  r.onchange = () => gameConfig.timer.total = Number(r.value);
+});
 
 /* ======================
    Summary
@@ -144,34 +135,28 @@ toSummaryBtn.onclick = () => {
   gameConfig.questionsPerRound =
     Number(document.querySelector("input[name=qPerRound]:checked").value);
   gameConfig.teams = Number(teamSelect.value);
+  gameConfig.extremeOnly = extremeOnly.checked;
 
   summaryList.innerHTML = `
     <li>🎮 Image Guess</li>
-    <li>🌏 Language: ${gameConfig.language || "-"}</li>
-    <li>📖 Content: ${gameConfig.group || "-"}</li>
     <li>❓ Questions: ${gameConfig.mode === "standard" ? gameConfig.questionsPerRound : "Unlimited"}</li>
     <li>⚖️ Difficulty: ${gameConfig.extremeOnly ? "Extreme Only ⚠️" : "Mixed"}</li>
     <li>👥 Teams: ${gameConfig.teams}</li>
-    <li>⏱️ Timer: ${
-      gameConfig.mode === "timeAttack"
-        ? `${gameConfig.timer.total / 60} min / team`
-        : gameConfig.timer.enabled ? `${gameConfig.timer.perQuestion}s / question` : "Off"
-    }</li>
   `;
 
   setup.classList.add("hidden");
   summary.classList.remove("hidden");
 };
 
-backToSetupBtn.onclick = () => {
-  summary.classList.add("hidden");
-  setup.classList.remove("hidden");
-};
-
 /* ======================
    Start Game
 ====================== */
 startBtn.onclick = () => {
+  if (!dataReady) {
+    alert("Loading questions, please wait...");
+    return;
+  }
+
   teamScores = new Array(gameConfig.teams).fill(0);
   activeTeam = 0;
   startTeam();
@@ -194,6 +179,8 @@ function startTeam() {
 
   if (gameConfig.mode === "timeAttack") {
     startTotalTimer();
+  } else {
+    timerBox.classList.add("hidden");
   }
 
   loadQuestion();
@@ -214,10 +201,9 @@ function nextTeam() {
    Queue
 ====================== */
 function buildQuestionQueue() {
-  let pool = allQuestions.filter(q => {
-    if (gameConfig.extremeOnly && q.difficulty !== "extreme") return false;
-    return true;
-  });
+  let pool = gameConfig.extremeOnly
+    ? allQuestions.filter(q => q.difficulty === "extreme")
+    : [...allQuestions];
 
   shuffle(pool);
 
@@ -263,8 +249,6 @@ function loadQuestion() {
 
   if (gameConfig.mode === "standard" && gameConfig.timer.enabled) {
     startPerQuestionTimer();
-  } else {
-    timerBox.classList.add("hidden");
   }
 }
 
