@@ -5,17 +5,18 @@
 ====================== */
 const bgm = document.getElementById("bgm");
 const sfxScore = document.getElementById("sfxScore");
-const sfxNext = document.getElementById("sfxNext");
+const sfxNext = document.getElementById("sfxNext"); // 可能不存在
 
-bgm.volume = 0.25;
-sfxScore.volume = 0.8;
-sfxNext.volume = 0.6;
+if (bgm) bgm.volume = 0.25;
+if (sfxScore) sfxScore.volume = 0.8;
+if (sfxNext) sfxNext.volume = 0.6;
 
 /* ======================
    Constants
 ====================== */
 const IMAGE_BASE = "https://yongearn-dev.github.io/guess-word-game/images/";
-const SHEET_URL = "https://opensheet.elk.sh/1nmgda-PSW0qNpEnT65HozbrbK4SPoOlfq3WlEIQSgf4/Sheet1";
+const SHEET_URL =
+  "https://opensheet.elk.sh/1nmgda-PSW0qNpEnT65HozbrbK4SPoOlfq3WlEIQSgf4/Sheet1";
 
 const DIFFICULTY_SCORE = {
   easy: 1,
@@ -30,59 +31,29 @@ const DIFFICULTY_SCORE = {
 let allQuestions = [];
 let availableQuestions = [];
 let usedQuestionIds = new Set();
-let roundQuestions = [];
-let currentQuestionIndex = 0;
-let currentRound = 1;
 
 let currentIndex = 0;
 let activeTeam = 0;
 let teamScores = [];
-let scoredTeamsThisQuestion = new Set();
 let timerInterval = null;
 let remainingTime = 0;
+let currentQuestion = null;
 
 /* ======================
    Config
 ====================== */
 const gameConfig = {
-  gameType: "imageGuess",
+  mode: "standard",
   language: "",
   group: "",
   categories: [],
   questionsPerRound: 10,
-  advancedDifficulty: false,
-  extremeOnly: false,
-  teamCount: 1,
-  roundCount: 1,
-  timerEnabled: false
-};
-
-/* ======================
-   Maps
-====================== */
-const GROUP_MAP = {
-  zh: [
-    { value: "bible", label: "聖經" },
-    { value: "other", label: "其他" }
-  ],
-  th: [
-    { value: "bible", label: "พระคัมภีร์" },
-    { value: "other", label: "อื่นๆ" }
-  ]
-};
-
-const CATEGORY_MAP = {
-  bible: [
-    { value: "person", label: "人物" },
-    { value: "place", label: "地方" },
-    { value: "vocab", label: "詞彙" }
-  ],
-  other: [
-    { value: "travel", label: "旅行" },
-    { value: "life", label: "生活" },
-    { value: "food", label: "美食" },
-    { value: "knowledge", label: "知識" }
-  ]
+  teams: 3,
+  timer: {
+    enabled: false,
+    perQuestion: 30,
+    total: 300
+  }
 };
 
 /* ======================
@@ -122,14 +93,17 @@ function resetQuestionPool() {
 }
 
 /* ======================
-   Mode / Settings
+   Settings Bind
 ====================== */
 document.querySelectorAll("input[name=gameMode]").forEach(r => {
-  r.onchange = () => gameConfig.mode = r.value;
+  r.onchange = () => {
+    gameConfig.mode = r.value;
+    updateModeUI();
+  };
 });
 
 document.querySelectorAll("input[name=qPerRound]").forEach(r => {
-  r.onchange = () => gameConfig.questionsPerRound = Number(r.value);
+  r.onchange = () => (gameConfig.questionsPerRound = Number(r.value));
 });
 
 document.getElementById("enablePerQuestionTimer").onchange = e => {
@@ -137,11 +111,11 @@ document.getElementById("enablePerQuestionTimer").onchange = e => {
 };
 
 document.querySelectorAll("input[name=perQuestionTime]").forEach(r => {
-  r.onchange = () => gameConfig.timer.perQuestion = Number(r.value);
+  r.onchange = () => (gameConfig.timer.perQuestion = Number(r.value));
 });
 
 document.querySelectorAll("input[name=totalTime]").forEach(r => {
-  r.onchange = () => gameConfig.timer.total = Number(r.value);
+  r.onchange = () => (gameConfig.timer.total = Number(r.value));
 });
 
 document.getElementById("teamSelect").onchange = e => {
@@ -149,7 +123,7 @@ document.getElementById("teamSelect").onchange = e => {
 };
 
 /* ======================
-   Mode UI Toggle
+   Mode UI
 ====================== */
 const standardOptions = document.getElementById("standardOptions");
 const timeAttackOptions = document.getElementById("timeAttackOptions");
@@ -161,23 +135,10 @@ function updateModeUI() {
   } else {
     standardOptions.classList.add("hidden");
     timeAttackOptions.classList.remove("hidden");
-
-    // Time Attack 強制有時間（保險）
     gameConfig.timer.enabled = false;
   }
 }
-
-// 綁定 mode 切換
-document.querySelectorAll("input[name=gameMode]").forEach(radio => {
-  radio.addEventListener("change", () => {
-    gameConfig.mode = radio.value;
-    updateModeUI();
-  });
-});
-
-// 初始化（避免一入畫面就錯）
 updateModeUI();
-
 
 /* ======================
    Summary
@@ -188,11 +149,12 @@ toSummaryBtn.onclick = () => {
     <li>Teams: ${gameConfig.teams}</li>
     <li>Timer: ${
       gameConfig.mode === "standard"
-        ? (gameConfig.timer.enabled ? `Per Question ${gameConfig.timer.perQuestion}s` : "Off")
+        ? gameConfig.timer.enabled
+          ? `Per Question ${gameConfig.timer.perQuestion}s`
+          : "Off"
         : `${gameConfig.timer.total / 60} min per team`
     }</li>
   `;
-
   setup.classList.add("hidden");
   summary.classList.remove("hidden");
 };
@@ -206,7 +168,7 @@ backToSetupBtn.onclick = () => {
    Start Game
 ====================== */
 startBtn.onclick = () => {
-  bgm?.play().catch(()=>{});
+  bgm?.play().catch(() => {});
 
   teamScores = new Array(gameConfig.teams).fill(0);
   activeTeam = 0;
@@ -217,30 +179,22 @@ startBtn.onclick = () => {
   summary.classList.add("hidden");
   game.classList.remove("hidden");
 
-function startTeamTurn(){
-  currentIndex=0;
-  buildQueue();
-  loadQuestion();
-
-  if(gameConfig.mode==="timeAttack"){
-    startTotalTimer();
-    questionTitle.textContent=`Team ${activeTeam+1}`;
+  if (gameConfig.mode === "timeAttack") {
+    startTimeAttackTeam();
+  } else {
+    loadQuestion();
   }
-}
+};
 
 /* ======================
    Question Logic
 ====================== */
 function getNextQuestion() {
-  if (!availableQuestions.length) {
-    resetQuestionPool(); // allow repeat only if exhausted
-  }
+  if (!availableQuestions.length) resetQuestionPool();
   const q = availableQuestions.shift();
   usedQuestionIds.add(q.id);
   return q;
 }
-
-let currentQuestion = null;
 
 function loadQuestion() {
   clearInterval(timerInterval);
@@ -256,7 +210,7 @@ function loadQuestion() {
   currentIndex++;
 
   imageRow.innerHTML = "";
-  ["img1","img2","img3","img4"]
+  ["img1", "img2", "img3", "img4"]
     .map(k => currentQuestion[k])
     .filter(Boolean)
     .forEach(n => {
@@ -280,7 +234,7 @@ function loadQuestion() {
 ====================== */
 function startPerQuestionTimer() {
   remainingTime = gameConfig.timer.perQuestion;
-  timerBox.classList.remove("hidden","warning");
+  timerBox.classList.remove("hidden", "warning");
 
   timerInterval = setInterval(() => {
     remainingTime--;
@@ -303,12 +257,13 @@ function startTimeAttackTeam() {
 function startTotalTimer() {
   clearInterval(timerInterval);
   remainingTime = gameConfig.timer.total;
-  timerBox.classList.remove("hidden","warning");
+  timerBox.classList.remove("hidden", "warning");
 
   timerInterval = setInterval(() => {
     remainingTime--;
-    timerBox.textContent =
-      `⏱ ${Math.floor(remainingTime / 60)}:${String(remainingTime % 60).padStart(2,"0")}`;
+    timerBox.textContent = `⏱ ${Math.floor(remainingTime / 60)}:${String(
+      remainingTime % 60
+    ).padStart(2, "0")}`;
 
     if (remainingTime <= 10) timerBox.classList.add("warning");
 
@@ -355,9 +310,12 @@ function showEndScreen() {
   summary.classList.remove("hidden");
 
   summaryList.innerHTML = teamScores
-    .map((s,i)=>({team:i+1,score:s}))
-    .sort((a,b)=>b.score-a.score)
-    .map((r,i)=>`<li>${["🥇","🥈","🥉"][i]||"🎮"} Team ${r.team} — ${r.score}</li>`)
+    .map((s, i) => ({ team: i + 1, score: s }))
+    .sort((a, b) => b.score - a.score)
+    .map(
+      (r, i) =>
+        `<li>${["🥇", "🥈", "🥉"][i] || "🎮"} Team ${r.team} — ${r.score}</li>`
+    )
     .join("");
 
   startBtn.textContent = "⬅ Back to Home";
@@ -367,9 +325,9 @@ function showEndScreen() {
 /* ======================
    Utils
 ====================== */
-function shuffle(a){
-  for(let i=a.length-1;i>0;i--){
-    const j=Math.floor(Math.random()*(i+1));
-    [a[i],a[j]]=[a[j],a[i]];
+function shuffle(a) {
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
   }
 }
