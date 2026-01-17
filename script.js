@@ -21,22 +21,55 @@ const SHEET_URL =
   "https://opensheet.elk.sh/1nmgda-PSW0qNpEnT65HozbrbK4SPoOlfq3WlEIQSgf4/Sheet1";
 
 /* ======================
-   Game Config (Single Source)
+   Game Config（Single Source）
 ====================== */
 const gameConfig = {
   gameType: "imageGuess",
+
+  // mode
+  gameMode: "standard", // standard | timed
+
+  // content
   language: "",
   group: "",
   categories: [],
+
+  // rounds & questions
   questionsPerRound: 10,
+  roundCount: 1,
+
+  // difficulty
   advancedDifficulty: false,
   extremeOnly: false,
-  playMode: "simultaneous",
+
+  // players
+  playMode: "simultaneous", // simultaneous | turn
   teamCount: 1,
-  roundCount: 1,
+
+  // scoring
   scoreMode: "standard",
+
+  // timer
   timerEnabled: false,
-  timerMode: "perQuestion"
+  timerMode: "perQuestion", // perQuestion | perTeam
+  perQuestionTime: 30,
+  perTeamTime: 300 // seconds
+};
+
+/* ======================
+   Difficulty Presets
+====================== */
+const DIFFICULTY_PRESET = {
+  5:  { easy: 1, normal: 3, hard: 1, extreme: 0 },
+  10: { easy: 2, normal: 5, hard: 2, extreme: 1 },
+  15: { easy: 3, normal: 7, hard: 3, extreme: 2 }
+};
+
+const DIFFICULTY_SCORE = {
+  easy: 1,
+  normal: 2,
+  hard: 3,
+  extreme: 5
 };
 
 /* ======================
@@ -53,6 +86,7 @@ let scoredTeamsThisQuestion = new Set();
 
 let timer = 0;
 let timerInterval = null;
+let teamTimeLeft = [];
 
 /* ======================
    Maps
@@ -148,7 +182,7 @@ languageSelect.addEventListener("change", () => {
 });
 
 /* ======================
-   Group → Categories (Multi)
+   Group → Categories
 ====================== */
 groupSelect.addEventListener("change", () => {
   gameConfig.group = groupSelect.value;
@@ -209,11 +243,12 @@ toSummaryBtn.onclick = () => {
 
   summaryList.innerHTML = `
     <li>🎮 遊戲類型：看圖估字</li>
+    <li>🎯 模式：${gameConfig.gameMode === "timed" ? "限時模式" : "標準模式"}</li>
     <li>🌏 語言：${gameConfig.language}</li>
     <li>📖 內容：${gameConfig.group}｜${gameConfig.categories.join(" + ")}</li>
-    <li>❓ 題數：${gameConfig.questionsPerRound}</li>
-    <li>⚖️ 難度：${gameConfig.extremeOnly ? "Extreme Only" : "混合"}</li>
-    <li>👥 組別：${gameConfig.teamCount}</li>
+    <li>❓ 題數：${gameConfig.gameMode === "timed" ? "不限" : gameConfig.questionsPerRound}</li>
+    <li>⚖️ 難度：${gameConfig.extremeOnly ? "⚠️ Extreme Only" : "混合"}</li>
+    <li>👥 組別：${gameConfig.teamCount} 組</li>
     <li>⏱️ 計時：${gameConfig.timerEnabled ? "開" : "關"}</li>
   `;
 
@@ -234,6 +269,8 @@ startBtn.onclick = () => {
   bgm.play().catch(() => {});
 
   teamScores = new Array(gameConfig.teamCount).fill(0);
+  teamTimeLeft = new Array(gameConfig.teamCount).fill(gameConfig.perTeamTime);
+
   usedQuestionIds.clear();
   currentRound = 1;
 
@@ -263,10 +300,33 @@ function startRound() {
   });
 
   shuffle(pool);
-  roundQuestions = pool.slice(0, gameConfig.questionsPerRound);
-  roundQuestions.forEach(q => usedQuestionIds.add(q.id));
+
+  if (gameConfig.gameMode === "standard") {
+    roundQuestions = pickByDifficulty(pool);
+    roundQuestions.forEach(q => usedQuestionIds.add(q.id));
+  } else {
+    roundQuestions = pool;
+  }
 
   loadQuestion();
+}
+
+function pickByDifficulty(pool) {
+  if (gameConfig.extremeOnly) {
+    return pool.slice(0, gameConfig.questionsPerRound);
+  }
+
+  const preset = DIFFICULTY_PRESET[gameConfig.questionsPerRound];
+  let result = [];
+
+  Object.keys(preset).forEach(level => {
+    const count = preset[level];
+    const candidates = pool.filter(q => q.difficulty === level);
+    result = result.concat(candidates.slice(0, count));
+  });
+
+  shuffle(result);
+  return result;
 }
 
 function loadQuestion() {
@@ -296,7 +356,7 @@ function loadQuestion() {
   answerBox.innerText = q.answer;
   answerBox.classList.add("hidden");
 
-  renderTeams();
+  renderTeams(q);
 }
 
 /* ======================
@@ -310,7 +370,7 @@ function startTimer() {
     return;
   }
 
-  timer = 30;
+  timer = gameConfig.perQuestionTime;
   timerBox.classList.remove("hidden", "warning");
   timerBox.innerText = `⏱ ${timer}`;
 
@@ -328,21 +388,26 @@ function startTimer() {
 /* ======================
    Teams
 ====================== */
-function renderTeams() {
+function renderTeams(question) {
   teamButtons.innerHTML = "";
 
   for (let i = 0; i < gameConfig.teamCount; i++) {
     const btn = document.createElement("button");
-    btn.innerText = `第 ${i + 1} 組 ＋1（${teamScores[i]}）`;
+    const score =
+      gameConfig.extremeOnly
+        ? 5
+        : DIFFICULTY_SCORE[question.difficulty];
+
+    btn.innerText = `第 ${i + 1} 組 +${score}（${teamScores[i]}）`;
     btn.disabled = scoredTeamsThisQuestion.has(i);
 
     btn.onclick = () => {
       if (scoredTeamsThisQuestion.has(i)) return;
-      teamScores[i]++;
+      teamScores[i] += score;
       scoredTeamsThisQuestion.add(i);
       sfxScore.currentTime = 0;
       sfxScore.play();
-      renderTeams();
+      renderTeams(question);
     };
 
     teamButtons.appendChild(btn);
@@ -361,7 +426,11 @@ nextBtn.onclick = () => {
   sfxNext.play();
 
   currentQuestionIndex++;
-  if (currentQuestionIndex >= roundQuestions.length) {
+
+  if (
+    gameConfig.gameMode === "standard" &&
+    currentQuestionIndex >= roundQuestions.length
+  ) {
     currentRound++;
     if (currentRound > gameConfig.roundCount) {
       alert("🎉 遊戲完成");
@@ -370,9 +439,10 @@ nextBtn.onclick = () => {
     } else {
       startRound();
     }
-  } else {
-    loadQuestion();
+    return;
   }
+
+  loadQuestion();
 };
 
 /* ======================
