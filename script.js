@@ -12,8 +12,11 @@ if (sfxScore) sfxScore.volume = 0.8;
 /* ======================
    Constants
 ====================== */
-const IMAGE_BASE = "https://yongearn-dev.github.io/guess-word-game/images/";
-const SHEET_URL = "https://opensheet.elk.sh/1nmgda-PSW0qNpEnT65HozbrbK4SPoOlfq3WlEIQSgf4/Sheet1";
+const IMAGE_BASE =
+  "https://yongearn-dev.github.io/guess-word-game/images/";
+
+const SHEET_URL =
+  "https://opensheet.elk.sh/1nmgda-PSW0qNpEnT65HozbrbK4SPoOlfq3WlEIQSgf4/Sheet1";
 
 const DIFFICULTY_SCORE = {
   easy: 1,
@@ -169,7 +172,8 @@ groupSelect.onchange = () => {
     cb.onchange = () => {
       cb.checked
         ? gameConfig.categories.push(cb.value)
-        : gameConfig.categories = gameConfig.categories.filter(v => v !== cb.value);
+        : gameConfig.categories =
+            gameConfig.categories.filter(v => v !== cb.value);
     };
     label.append(cb, " " + c.label);
     categorySelect.appendChild(label);
@@ -210,7 +214,11 @@ toSummaryBtn.onclick = () => {
 
   summaryList.innerHTML = `
     <li>Mode: ${gameConfig.mode}</li>
-    <li>Questions: ${gameConfig.mode === "standard" ? gameConfig.questionsPerRound : "Unlimited"}</li>
+    <li>Questions: ${
+      gameConfig.mode === "standard"
+        ? gameConfig.questionsPerRound
+        : "Unlimited (Time)"
+    }</li>
     <li>Teams: ${gameConfig.teams}</li>
   `;
 
@@ -238,8 +246,11 @@ startBtn.onclick = () => {
   summary.classList.add("hidden");
   game.classList.remove("hidden");
 
-  if (gameConfig.mode === "timeAttack") startTotalTimer();
-  loadQuestion();
+  if (gameConfig.mode === "timeAttack") {
+    startTimeAttackTeam();
+  } else {
+    loadQuestion();
+  }
 };
 
 /* ======================
@@ -261,7 +272,9 @@ function buildQuestionQueue() {
     const dist = AUTO_DISTRIBUTION[gameConfig.questionsPerRound];
     questionQueue = [];
     Object.keys(dist).forEach(d => {
-      questionQueue.push(...pool.filter(q => q.difficulty === d).slice(0, dist[d]));
+      questionQueue.push(
+        ...pool.filter(q => q.difficulty === d).slice(0, dist[d])
+      );
     });
     shuffle(questionQueue);
   } else {
@@ -270,10 +283,25 @@ function buildQuestionQueue() {
 }
 
 /* ======================
+   Time Attack Team Start
+====================== */
+function startTimeAttackTeam() {
+  currentIndex = 0;
+  questionTitle.textContent = `Team ${activeTeam + 1}`;
+
+  clearInterval(timerInterval);
+  startTotalTimer();
+  loadQuestion();
+}
+
+/* ======================
    Question
 ====================== */
 function loadQuestion() {
-  if (gameConfig.mode === "standard" && currentIndex >= gameConfig.questionsPerRound) {
+  if (
+    gameConfig.mode === "standard" &&
+    currentIndex >= gameConfig.questionsPerRound
+  ) {
     return showEndScreen();
   }
 
@@ -302,7 +330,7 @@ function renderScoreButtons(diff) {
   teamButtons.innerHTML = "";
   for (let i = 0; i < gameConfig.teams; i++) {
     const btn = document.createElement("button");
-    btn.textContent = `Team ${i+1} +${DIFFICULTY_SCORE[diff]}`;
+    btn.textContent = `Team ${i + 1} +${DIFFICULTY_SCORE[diff]}`;
     btn.onclick = () => {
       teamScores[i] += DIFFICULTY_SCORE[diff];
       sfxScore?.play();
@@ -328,32 +356,43 @@ toggleAnswerBtn.onclick = () => {
 ====================== */
 function startTotalTimer() {
   remainingTime = gameConfig.timer.total;
-  timerBox.classList.remove("hidden");
+  timerBox.classList.remove("hidden", "warning");
 
   timerInterval = setInterval(() => {
     remainingTime--;
     timerBox.textContent =
-      `⏱ ${Math.floor(remainingTime/60)}:${String(remainingTime%60).padStart(2,"0")}`;
+      `⏱ ${Math.floor(remainingTime / 60)}:${String(remainingTime % 60).padStart(2, "0")}`;
+
+    if (remainingTime <= 10) timerBox.classList.add("warning");
+
     if (remainingTime <= 0) {
       clearInterval(timerInterval);
       activeTeam++;
-      if (activeTeam >= gameConfig.teams) showEndScreen();
-      else startTotalTimer();
+
+      if (activeTeam >= gameConfig.teams) {
+        showEndScreen();
+      } else {
+        startTimeAttackTeam();
+      }
     }
   }, 1000);
 }
 
 /* ======================
-   End
+   End Screen
 ====================== */
 function showEndScreen() {
+  clearInterval(timerInterval);
   game.classList.add("hidden");
   summary.classList.remove("hidden");
 
   summaryList.innerHTML = teamScores
-    .map((s,i)=>({team:i+1,score:s}))
-    .sort((a,b)=>b.score-a.score)
-    .map((r,i)=>`<li>${["🥇","🥈","🥉"][i]||"🎮"} Team ${r.team} — ${r.score}</li>`)
+    .map((s, i) => ({ team: i + 1, score: s }))
+    .sort((a, b) => b.score - a.score)
+    .map(
+      (r, i) =>
+        `<li>${["🥇","🥈","🥉"][i] || "🎮"} Team ${r.team} — ${r.score} pts</li>`
+    )
     .join("");
 
   startBtn.textContent = "⬅ Back to Home";
@@ -363,9 +402,9 @@ function showEndScreen() {
 /* ======================
    Utils
 ====================== */
-function shuffle(a){
-  for(let i=a.length-1;i>0;i--){
-    const j=Math.floor(Math.random()*(i+1));
-    [a[i],a[j]]=[a[j],a[i]];
+function shuffle(a) {
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
   }
 }
