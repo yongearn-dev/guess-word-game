@@ -21,55 +21,19 @@ const SHEET_URL =
   "https://opensheet.elk.sh/1nmgda-PSW0qNpEnT65HozbrbK4SPoOlfq3WlEIQSgf4/Sheet1";
 
 /* ======================
-   Game Config（Single Source）
+   Game Config
 ====================== */
 const gameConfig = {
   gameType: "imageGuess",
-
-  // mode
-  gameMode: "standard", // standard | timed
-
-  // content
   language: "",
   group: "",
   categories: [],
-
-  // rounds & questions
   questionsPerRound: 10,
-  roundCount: 1,
-
-  // difficulty
   advancedDifficulty: false,
   extremeOnly: false,
-
-  // players
-  playMode: "simultaneous", // simultaneous | turn
   teamCount: 1,
-
-  // scoring
-  scoreMode: "standard",
-
-  // timer
-  timerEnabled: false,
-  timerMode: "perQuestion", // perQuestion | perTeam
-  perQuestionTime: 30,
-  perTeamTime: 300 // seconds
-};
-
-/* ======================
-   Difficulty Presets
-====================== */
-const DIFFICULTY_PRESET = {
-  5:  { easy: 1, normal: 3, hard: 1, extreme: 0 },
-  10: { easy: 2, normal: 5, hard: 2, extreme: 1 },
-  15: { easy: 3, normal: 7, hard: 3, extreme: 2 }
-};
-
-const DIFFICULTY_SCORE = {
-  easy: 1,
-  normal: 2,
-  hard: 3,
-  extreme: 5
+  roundCount: 1,
+  timerEnabled: false
 };
 
 /* ======================
@@ -86,7 +50,6 @@ let scoredTeamsThisQuestion = new Set();
 
 let timer = 0;
 let timerInterval = null;
-let teamTimeLeft = [];
 
 /* ======================
    Maps
@@ -165,10 +128,11 @@ fetch(SHEET_URL)
 /* ======================
    Language → Group
 ====================== */
-languageSelect.addEventListener("change", () => {
+languageSelect.onchange = () => {
   gameConfig.language = languageSelect.value;
   groupSelect.innerHTML = `<option value="">選擇內容大類</option>`;
   categorySelectBox.innerHTML = "";
+  gameConfig.categories = [];
   groupSelect.disabled = !gameConfig.language;
 
   if (!gameConfig.language) return;
@@ -179,12 +143,12 @@ languageSelect.addEventListener("change", () => {
     opt.textContent = g.label;
     groupSelect.appendChild(opt);
   });
-});
+};
 
 /* ======================
    Group → Categories
 ====================== */
-groupSelect.addEventListener("change", () => {
+groupSelect.onchange = () => {
   gameConfig.group = groupSelect.value;
   categorySelectBox.innerHTML = "";
   gameConfig.categories = [];
@@ -198,22 +162,20 @@ groupSelect.addEventListener("change", () => {
     cb.value = c.value;
 
     cb.onchange = () => {
-      if (cb.checked) {
-        gameConfig.categories.push(cb.value);
-      } else {
+      if (cb.checked) gameConfig.categories.push(cb.value);
+      else
         gameConfig.categories =
           gameConfig.categories.filter(v => v !== cb.value);
-      }
     };
 
     label.appendChild(cb);
     label.append(" " + c.label);
     categorySelectBox.appendChild(label);
   });
-});
+};
 
 /* ======================
-   Difficulty
+   Difficulty / Timer
 ====================== */
 advancedDifficulty.onchange = () => {
   gameConfig.advancedDifficulty = advancedDifficulty.checked;
@@ -224,9 +186,6 @@ extremeOnly.onchange = () => {
   gameConfig.extremeOnly = extremeOnly.checked;
 };
 
-/* ======================
-   Timer
-====================== */
 enableTimer.onchange = () => {
   gameConfig.timerEnabled = enableTimer.checked;
   timerOptions.classList.toggle("hidden", !enableTimer.checked);
@@ -242,14 +201,14 @@ toSummaryBtn.onclick = () => {
     roundSelect.value === "custom" ? 1 : Number(roundSelect.value);
 
   summaryList.innerHTML = `
-    <li>🎮 遊戲類型：看圖估字</li>
-    <li>🎯 模式：${gameConfig.gameMode === "timed" ? "限時模式" : "標準模式"}</li>
+    <li>🎮 看圖估字</li>
     <li>🌏 語言：${gameConfig.language}</li>
-    <li>📖 內容：${gameConfig.group}｜${gameConfig.categories.join(" + ")}</li>
-    <li>❓ 題數：${gameConfig.gameMode === "timed" ? "不限" : gameConfig.questionsPerRound}</li>
-    <li>⚖️ 難度：${gameConfig.extremeOnly ? "⚠️ Extreme Only" : "混合"}</li>
-    <li>👥 組別：${gameConfig.teamCount} 組</li>
-    <li>⏱️ 計時：${gameConfig.timerEnabled ? "開" : "關"}</li>
+    <li>📖 類型：${gameConfig.group}</li>
+    <li>🏷 分類：${gameConfig.categories.join(" + ")}</li>
+    <li>❓ 題數：${gameConfig.questionsPerRound}</li>
+    <li>👥 組別：${gameConfig.teamCount}</li>
+    <li>🔁 回合：${gameConfig.roundCount}</li>
+    <li>⏱ 計時：${gameConfig.timerEnabled ? "開" : "關"}</li>
   `;
 
   setup.classList.add("hidden");
@@ -269,8 +228,6 @@ startBtn.onclick = () => {
   bgm.play().catch(() => {});
 
   teamScores = new Array(gameConfig.teamCount).fill(0);
-  teamTimeLeft = new Array(gameConfig.teamCount).fill(gameConfig.perTeamTime);
-
   usedQuestionIds.clear();
   currentRound = 1;
 
@@ -294,39 +251,17 @@ function startRound() {
     if (
       gameConfig.categories.length &&
       !gameConfig.categories.includes(q.category)
-    ) return false;
+    )
+      return false;
     if (gameConfig.extremeOnly && q.difficulty !== "extreme") return false;
     return true;
   });
 
   shuffle(pool);
-
-  if (gameConfig.gameMode === "standard") {
-    roundQuestions = pickByDifficulty(pool);
-    roundQuestions.forEach(q => usedQuestionIds.add(q.id));
-  } else {
-    roundQuestions = pool;
-  }
+  roundQuestions = pool.slice(0, gameConfig.questionsPerRound);
+  roundQuestions.forEach(q => usedQuestionIds.add(q.id));
 
   loadQuestion();
-}
-
-function pickByDifficulty(pool) {
-  if (gameConfig.extremeOnly) {
-    return pool.slice(0, gameConfig.questionsPerRound);
-  }
-
-  const preset = DIFFICULTY_PRESET[gameConfig.questionsPerRound];
-  let result = [];
-
-  Object.keys(preset).forEach(level => {
-    const count = preset[level];
-    const candidates = pool.filter(q => q.difficulty === level);
-    result = result.concat(candidates.slice(0, count));
-  });
-
-  shuffle(result);
-  return result;
 }
 
 function loadQuestion() {
@@ -347,16 +282,16 @@ function loadQuestion() {
       const img = document.createElement("img");
       img.src = IMAGE_BASE + name;
       imageRow.appendChild(img);
-      if (i < arr.length - 1) {
+      if (i < arr.length - 1)
         imageRow.appendChild(document.createTextNode(" ＋ "));
-      }
     });
+
   imageRow.appendChild(document.createTextNode(" ＝？"));
 
   answerBox.innerText = q.answer;
   answerBox.classList.add("hidden");
 
-  renderTeams(q);
+  renderTeams();
 }
 
 /* ======================
@@ -370,7 +305,7 @@ function startTimer() {
     return;
   }
 
-  timer = gameConfig.perQuestionTime;
+  timer = 30;
   timerBox.classList.remove("hidden", "warning");
   timerBox.innerText = `⏱ ${timer}`;
 
@@ -388,26 +323,21 @@ function startTimer() {
 /* ======================
    Teams
 ====================== */
-function renderTeams(question) {
+function renderTeams() {
   teamButtons.innerHTML = "";
 
   for (let i = 0; i < gameConfig.teamCount; i++) {
     const btn = document.createElement("button");
-    const score =
-      gameConfig.extremeOnly
-        ? 5
-        : DIFFICULTY_SCORE[question.difficulty];
-
-    btn.innerText = `第 ${i + 1} 組 +${score}（${teamScores[i]}）`;
+    btn.innerText = `第 ${i + 1} 組 ＋1（${teamScores[i]}）`;
     btn.disabled = scoredTeamsThisQuestion.has(i);
 
     btn.onclick = () => {
       if (scoredTeamsThisQuestion.has(i)) return;
-      teamScores[i] += score;
+      teamScores[i]++;
       scoredTeamsThisQuestion.add(i);
       sfxScore.currentTime = 0;
       sfxScore.play();
-      renderTeams(question);
+      renderTeams();
     };
 
     teamButtons.appendChild(btn);
@@ -426,11 +356,7 @@ nextBtn.onclick = () => {
   sfxNext.play();
 
   currentQuestionIndex++;
-
-  if (
-    gameConfig.gameMode === "standard" &&
-    currentQuestionIndex >= roundQuestions.length
-  ) {
+  if (currentQuestionIndex >= roundQuestions.length) {
     currentRound++;
     if (currentRound > gameConfig.roundCount) {
       alert("🎉 遊戲完成");
@@ -439,10 +365,9 @@ nextBtn.onclick = () => {
     } else {
       startRound();
     }
-    return;
+  } else {
+    loadQuestion();
   }
-
-  loadQuestion();
 };
 
 /* ======================
