@@ -6,19 +6,19 @@ body {
 }
 
 /* ======================
-   通用
+   Utilities
 ====================== */
 .hidden {
-  display: none;
+  display: none !important;
 }
 
-h1, h2 {
+h1, h2, h3 {
   text-align: center;
   margin-top: 0;
 }
 
 section {
-  margin-bottom: 24px;
+  margin-bottom: 26px;
 }
 
 label {
@@ -35,23 +35,23 @@ input[type="radio"] {
 }
 
 /* ======================
-   卡片容器
+   Card Layout
 ====================== */
 .card {
   max-width: 900px;
   margin: 30px auto;
-  padding: 24px 28px;
+  padding: 26px 30px;
   background: #ffffff;
   border-radius: 20px;
   box-shadow: 0 6px 0 #f2c94c;
 }
 
 /* ======================
-   按鈕
+   Buttons
 ====================== */
 button {
-  margin-top: 20px;
-  padding: 12px 24px;
+  margin-top: 22px;
+  padding: 12px 26px;
   font-size: 18px;
   border-radius: 14px;
   border: none;
@@ -70,7 +70,7 @@ button:disabled {
 }
 
 /* ======================
-   Checkbox 群組
+   Checkbox Group
 ====================== */
 .checkbox-group {
   display: grid;
@@ -87,7 +87,43 @@ button:disabled {
 }
 
 /* ======================
-   遊戲畫面
+   Mode Sections
+====================== */
+#standardOptions,
+#timeAttackOptions {
+  background: #fff9db;
+  padding: 16px 18px;
+  border-radius: 14px;
+  box-shadow: inset 0 0 0 2px #f4d35e;
+}
+
+/* ======================
+   Difficulty Warning
+====================== */
+#difficultyOptions label {
+  color: #c0392b;
+  font-weight: bold;
+}
+
+#difficultyOptions label::before {
+  content: "⚠️ ";
+}
+
+/* ======================
+   Summary
+====================== */
+#summary ul {
+  list-style: none;
+  padding: 0;
+  font-size: 18px;
+}
+
+#summary li {
+  margin: 8px 0;
+}
+
+/* ======================
+   Game Screen
 ====================== */
 #game {
   padding: 20px;
@@ -99,14 +135,13 @@ button:disabled {
 }
 
 /* ======================
-   圖片列
+   Image Row
 ====================== */
 #imageRow {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 32px;
-  gap: 10px;
+  gap: 12px;
   margin-bottom: 20px;
 }
 
@@ -117,7 +152,7 @@ button:disabled {
 }
 
 /* ======================
-   答案
+   Answer
 ====================== */
 #answer {
   text-align: center;
@@ -128,13 +163,13 @@ button:disabled {
 }
 
 /* ======================
-   組別按鈕
+   Team Buttons
 ====================== */
 #teamButtons {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  margin: 16px 0;
+  margin: 18px 0;
 }
 
 #teamButtons button {
@@ -143,7 +178,7 @@ button:disabled {
 }
 
 /* ======================
-   計時器
+   Timer
 ====================== */
 .timer {
   position: fixed;
@@ -164,24 +199,10 @@ button:disabled {
 }
 
 /* ======================
-   排行榜
-====================== */
-#scoreboard {
-  max-width: 400px;
-  margin: 20px auto;
-  background: #fff3c4;
-  padding: 16px;
-  border-radius: 14px;
-  box-shadow: 0 4px 0 #f4d35e;
-  font-size: 18px;
-}
-
-/* ======================
-   動畫
+   Animations
 ====================== */
 @keyframes pulse {
   0% { transform: scale(1); }
   50% { transform: scale(1.08); }
   100% { transform: scale(1); }
 }
-
