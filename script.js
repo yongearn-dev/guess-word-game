@@ -213,12 +213,16 @@ startBtn.onclick = () => {
   summary.classList.add("hidden");
   game.classList.remove("hidden");
 
-  if (gameConfig.mode === "timeAttack") {
-    startTimeAttackTeam();
-  } else {
-    loadQuestion();
+function startTeamTurn(){
+  currentIndex=0;
+  buildQueue();
+  loadQuestion();
+
+  if(gameConfig.mode==="timeAttack"){
+    startTotalTimer();
+    questionTitle.textContent=`Team ${activeTeam+1}`;
   }
-};
+}
 
 /* ======================
    Question Logic
