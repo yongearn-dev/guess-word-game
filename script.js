@@ -5,18 +5,14 @@
 ====================== */
 const bgm = document.getElementById("bgm");
 const sfxScore = document.getElementById("sfxScore");
-
 if (bgm) bgm.volume = 0.25;
 if (sfxScore) sfxScore.volume = 0.8;
 
 /* ======================
    Constants
 ====================== */
-const IMAGE_BASE =
-  "https://yongearn-dev.github.io/guess-word-game/images/";
-
-const SHEET_URL =
-  "https://opensheet.elk.sh/1nmgda-PSW0qNpEnT65HozbrbK4SPoOlfq3WlEIQSgf4/Sheet1";
+const IMAGE_BASE = "https://yongearn-dev.github.io/guess-word-game/images/";
+const SHEET_URL = "https://opensheet.elk.sh/1nmgda-PSW0qNpEnT65HozbrbK4SPoOlfq3WlEIQSgf4/Sheet1";
 
 const DIFFICULTY_SCORE = {
   easy: 1,
@@ -25,21 +21,16 @@ const DIFFICULTY_SCORE = {
   extreme: 5
 };
 
-const AUTO_DISTRIBUTION = {
-  5:  { easy: 1, normal: 3, hard: 1, extreme: 0 },
-  10: { easy: 2, normal: 5, hard: 2, extreme: 1 },
-  15: { easy: 3, normal: 7, hard: 3, extreme: 2 }
-};
-
 /* ======================
    State
 ====================== */
 let allQuestions = [];
-let questionQueue = [];
-let currentIndex = 0;
+let availableQuestions = [];
+let usedQuestionIds = new Set();
 
-let teamScores = [];
+let currentIndex = 0;
 let activeTeam = 0;
+let teamScores = [];
 
 let timerInterval = null;
 let remainingTime = 0;
@@ -48,20 +39,16 @@ let remainingTime = 0;
    Config
 ====================== */
 const gameConfig = {
-  language: "",
-  group: "",
-  categories: [],
-
   mode: "standard",
+
   questionsPerRound: 10,
 
   timer: {
-    enabled: false,
-    perQuestion: 30,
-    total: 300
+    enabled: false,        // standard only
+    perQuestion: 30,       // seconds
+    total: 300             // time attack seconds
   },
 
-  extremeOnly: false,
   teams: 3
 };
 
@@ -71,22 +58,6 @@ const gameConfig = {
 const setup = document.getElementById("setup");
 const summary = document.getElementById("summary");
 const game = document.getElementById("game");
-
-const languageSelect = document.getElementById("languageSelect");
-const groupSelect = document.getElementById("groupSelect");
-const categorySelect = document.getElementById("categorySelect");
-
-const standardOptions = document.getElementById("standardOptions");
-const timeAttackOptions = document.getElementById("timeAttackOptions");
-
-const enablePerQuestionTimer = document.getElementById("enablePerQuestionTimer");
-const perQuestionTimerOptions = document.getElementById("perQuestionTimerOptions");
-
-const advancedDifficulty = document.getElementById("advancedDifficulty");
-const difficultyOptions = document.getElementById("difficultyOptions");
-const extremeOnly = document.getElementById("extremeOnly");
-
-const teamSelect = document.getElementById("teamSelect");
 
 const toSummaryBtn = document.getElementById("toSummaryBtn");
 const backToSetupBtn = document.getElementById("backToSetupBtn");
@@ -130,96 +101,92 @@ const CATEGORY_MAP = {
   ]
 };
 
+
 /* ======================
    Load Data
 ====================== */
 fetch(SHEET_URL)
   .then(r => r.json())
-  .then(data => allQuestions = data);
+  .then(data => {
+    allQuestions = data;
+    resetQuestionPool();
+  });
+
+function resetQuestionPool() {
+  availableQuestions = [...allQuestions];
+  shuffle(availableQuestions);
+}
 
 /* ======================
-   Language / Group / Category
-====================== */
-languageSelect.onchange = () => {
-  gameConfig.language = languageSelect.value;
-  groupSelect.disabled = !gameConfig.language;
-  groupSelect.innerHTML = `<option value="">Select group</option>`;
-  categorySelect.innerHTML = "";
-  gameConfig.categories = [];
-
-  if (!gameConfig.language) return;
-
-  GROUP_MAP[gameConfig.language].forEach(g => {
-    const o = document.createElement("option");
-    o.value = g.value;
-    o.textContent = g.label;
-    groupSelect.appendChild(o);
-  });
-};
-
-groupSelect.onchange = () => {
-  gameConfig.group = groupSelect.value;
-  categorySelect.innerHTML = "";
-  gameConfig.categories = [];
-
-  if (!gameConfig.group) return;
-
-  CATEGORY_MAP[gameConfig.group].forEach(c => {
-    const label = document.createElement("label");
-    const cb = document.createElement("input");
-    cb.type = "checkbox";
-    cb.value = c.value;
-    cb.onchange = () => {
-      cb.checked
-        ? gameConfig.categories.push(cb.value)
-        : gameConfig.categories =
-            gameConfig.categories.filter(v => v !== cb.value);
-    };
-    label.append(cb, " " + c.label);
-    categorySelect.appendChild(label);
-  });
-};
-
-/* ======================
-   Mode
+   Mode / Settings
 ====================== */
 document.querySelectorAll("input[name=gameMode]").forEach(r => {
-  r.onchange = () => {
-    gameConfig.mode = r.value;
-    standardOptions.classList.toggle("hidden", r.value !== "standard");
-    timeAttackOptions.classList.toggle("hidden", r.value !== "timeAttack");
-  };
+  r.onchange = () => gameConfig.mode = r.value;
 });
 
-/* ======================
-   Difficulty
-====================== */
-advancedDifficulty.onchange = () => {
-  difficultyOptions.classList.toggle("hidden", !advancedDifficulty.checked);
-  gameConfig.extremeOnly = false;
-  extremeOnly.checked = false;
+document.querySelectorAll("input[name=qPerRound]").forEach(r => {
+  r.onchange = () => gameConfig.questionsPerRound = Number(r.value);
+});
+
+document.getElementById("enablePerQuestionTimer").onchange = e => {
+  gameConfig.timer.enabled = e.target.checked;
 };
 
-extremeOnly.onchange = () => {
-  gameConfig.extremeOnly = extremeOnly.checked;
+document.querySelectorAll("input[name=perQuestionTime]").forEach(r => {
+  r.onchange = () => gameConfig.timer.perQuestion = Number(r.value);
+});
+
+document.querySelectorAll("input[name=totalTime]").forEach(r => {
+  r.onchange = () => gameConfig.timer.total = Number(r.value);
+});
+
+document.getElementById("teamSelect").onchange = e => {
+  gameConfig.teams = Number(e.target.value);
 };
+
+/* ======================
+   Mode UI Toggle
+====================== */
+const standardOptions = document.getElementById("standardOptions");
+const timeAttackOptions = document.getElementById("timeAttackOptions");
+
+function updateModeUI() {
+  if (gameConfig.mode === "standard") {
+    standardOptions.classList.remove("hidden");
+    timeAttackOptions.classList.add("hidden");
+  } else {
+    standardOptions.classList.add("hidden");
+    timeAttackOptions.classList.remove("hidden");
+
+    // Time Attack 強制有時間（保險）
+    gameConfig.timer.enabled = false;
+  }
+}
+
+// 綁定 mode 切換
+document.querySelectorAll("input[name=gameMode]").forEach(radio => {
+  radio.addEventListener("change", () => {
+    gameConfig.mode = radio.value;
+    updateModeUI();
+  });
+});
+
+// 初始化（避免一入畫面就錯）
+updateModeUI();
+
 
 /* ======================
    Summary
 ====================== */
 toSummaryBtn.onclick = () => {
-  gameConfig.questionsPerRound =
-    Number(document.querySelector("input[name=qPerRound]:checked").value);
-  gameConfig.teams = Number(teamSelect.value);
-
   summaryList.innerHTML = `
     <li>Mode: ${gameConfig.mode}</li>
-    <li>Questions: ${
-      gameConfig.mode === "standard"
-        ? gameConfig.questionsPerRound
-        : "Unlimited (Time)"
-    }</li>
     <li>Teams: ${gameConfig.teams}</li>
+    <li>Timer: ${
+      gameConfig.mode === "standard"
+        ? (gameConfig.timer.enabled ? `Per Question ${gameConfig.timer.perQuestion}s` : "Off")
+        : `${gameConfig.timer.total / 60} min per team`
+    }</li>
   `;
 
   setup.classList.add("hidden");
@@ -235,13 +202,13 @@ backToSetupBtn.onclick = () => {
    Start Game
 ====================== */
 startBtn.onclick = () => {
-  bgm.play().catch(()=>{});
+  bgm?.play().catch(()=>{});
 
   teamScores = new Array(gameConfig.teams).fill(0);
   activeTeam = 0;
   currentIndex = 0;
-
-  buildQuestionQueue();
+  usedQuestionIds.clear();
+  resetQuestionPool();
 
   summary.classList.add("hidden");
   game.classList.remove("hidden");
@@ -254,50 +221,22 @@ startBtn.onclick = () => {
 };
 
 /* ======================
-   Queue
+   Question Logic
 ====================== */
-function buildQuestionQueue() {
-  let pool = allQuestions.filter(q => {
-    if (gameConfig.language && q.language !== gameConfig.language) return false;
-    if (gameConfig.group && q.group !== gameConfig.group) return false;
-    if (gameConfig.categories.length && !gameConfig.categories.includes(q.category)) return false;
-    if (gameConfig.extremeOnly && q.difficulty !== "extreme") return false;
-    return true;
-  });
-
-  if (!pool.length) pool = [...allQuestions];
-  shuffle(pool);
-
-  if (gameConfig.mode === "standard") {
-    const dist = AUTO_DISTRIBUTION[gameConfig.questionsPerRound];
-    questionQueue = [];
-    Object.keys(dist).forEach(d => {
-      questionQueue.push(
-        ...pool.filter(q => q.difficulty === d).slice(0, dist[d])
-      );
-    });
-    shuffle(questionQueue);
-  } else {
-    questionQueue = pool;
+function getNextQuestion() {
+  if (!availableQuestions.length) {
+    resetQuestionPool(); // allow repeat only if exhausted
   }
+  const q = availableQuestions.shift();
+  usedQuestionIds.add(q.id);
+  return q;
 }
 
-/* ======================
-   Time Attack Team Start
-====================== */
-function startTimeAttackTeam() {
-  currentIndex = 0;
-  questionTitle.textContent = `Team ${activeTeam + 1}`;
+let currentQuestion = null;
 
-  clearInterval(timerInterval);
-  startTotalTimer();
-  loadQuestion();
-}
-
-/* ======================
-   Question
-====================== */
 function loadQuestion() {
+  clearInterval(timerInterval);
+
   if (
     gameConfig.mode === "standard" &&
     currentIndex >= gameConfig.questionsPerRound
@@ -305,11 +244,12 @@ function loadQuestion() {
     return showEndScreen();
   }
 
-  const q = questionQueue[currentIndex % questionQueue.length];
-  imageRow.innerHTML = "";
+  currentQuestion = getNextQuestion();
+  currentIndex++;
 
+  imageRow.innerHTML = "";
   ["img1","img2","img3","img4"]
-    .map(k => q[k])
+    .map(k => currentQuestion[k])
     .filter(Boolean)
     .forEach(n => {
       const img = document.createElement("img");
@@ -317,10 +257,63 @@ function loadQuestion() {
       imageRow.appendChild(img);
     });
 
-  answerBox.textContent = q.answer;
+  answerBox.textContent = currentQuestion.answer;
   answerBox.classList.add("hidden");
 
-  renderScoreButtons(q.difficulty);
+  renderScoreButtons(currentQuestion.difficulty);
+
+  if (gameConfig.mode === "standard" && gameConfig.timer.enabled) {
+    startPerQuestionTimer();
+  }
+}
+
+/* ======================
+   Timers
+====================== */
+function startPerQuestionTimer() {
+  remainingTime = gameConfig.timer.perQuestion;
+  timerBox.classList.remove("hidden","warning");
+
+  timerInterval = setInterval(() => {
+    remainingTime--;
+    timerBox.textContent = `⏱ ${remainingTime}`;
+    if (remainingTime <= 5) timerBox.classList.add("warning");
+    if (remainingTime <= 0) {
+      clearInterval(timerInterval);
+      answerBox.classList.remove("hidden");
+    }
+  }, 1000);
+}
+
+function startTimeAttackTeam() {
+  questionTitle.textContent = `Team ${activeTeam + 1}`;
+  currentIndex = 0;
+  startTotalTimer();
+  loadQuestion();
+}
+
+function startTotalTimer() {
+  clearInterval(timerInterval);
+  remainingTime = gameConfig.timer.total;
+  timerBox.classList.remove("hidden","warning");
+
+  timerInterval = setInterval(() => {
+    remainingTime--;
+    timerBox.textContent =
+      `⏱ ${Math.floor(remainingTime / 60)}:${String(remainingTime % 60).padStart(2,"0")}`;
+
+    if (remainingTime <= 10) timerBox.classList.add("warning");
+
+    if (remainingTime <= 0) {
+      clearInterval(timerInterval);
+      activeTeam++;
+      if (activeTeam >= gameConfig.teams) {
+        showEndScreen();
+      } else {
+        startTimeAttackTeam();
+      }
+    }
+  }, 1000);
 }
 
 /* ======================
@@ -342,41 +335,8 @@ function renderScoreButtons(diff) {
 /* ======================
    Controls
 ====================== */
-nextBtn.onclick = () => {
-  currentIndex++;
-  loadQuestion();
-};
-
-toggleAnswerBtn.onclick = () => {
-  answerBox.classList.remove("hidden");
-};
-
-/* ======================
-   Timer (Time Attack)
-====================== */
-function startTotalTimer() {
-  remainingTime = gameConfig.timer.total;
-  timerBox.classList.remove("hidden", "warning");
-
-  timerInterval = setInterval(() => {
-    remainingTime--;
-    timerBox.textContent =
-      `⏱ ${Math.floor(remainingTime / 60)}:${String(remainingTime % 60).padStart(2, "0")}`;
-
-    if (remainingTime <= 10) timerBox.classList.add("warning");
-
-    if (remainingTime <= 0) {
-      clearInterval(timerInterval);
-      activeTeam++;
-
-      if (activeTeam >= gameConfig.teams) {
-        showEndScreen();
-      } else {
-        startTimeAttackTeam();
-      }
-    }
-  }, 1000);
-}
+nextBtn.onclick = () => loadQuestion();
+toggleAnswerBtn.onclick = () => answerBox.classList.remove("hidden");
 
 /* ======================
    End Screen
@@ -387,12 +347,9 @@ function showEndScreen() {
   summary.classList.remove("hidden");
 
   summaryList.innerHTML = teamScores
-    .map((s, i) => ({ team: i + 1, score: s }))
-    .sort((a, b) => b.score - a.score)
-    .map(
-      (r, i) =>
-        `<li>${["🥇","🥈","🥉"][i] || "🎮"} Team ${r.team} — ${r.score} pts</li>`
-    )
+    .map((s,i)=>({team:i+1,score:s}))
+    .sort((a,b)=>b.score-a.score)
+    .map((r,i)=>`<li>${["🥇","🥈","🥉"][i]||"🎮"} Team ${r.team} — ${r.score}</li>`)
     .join("");
 
   startBtn.textContent = "⬅ Back to Home";
@@ -402,9 +359,9 @@ function showEndScreen() {
 /* ======================
    Utils
 ====================== */
-function shuffle(a) {
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
+function shuffle(a){
+  for(let i=a.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
   }
 }
