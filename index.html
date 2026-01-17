@@ -8,18 +8,17 @@
 
 <body class="theme-cartoon">
 
-<!-- 🔊 Audio -->
+<!-- ================= Audio ================= -->
 <audio id="bgm" src="audio/bgm.mp3" loop></audio>
 <audio id="sfxScore" src="audio/score.mp3"></audio>
-<audio id="sfxNext" src="audio/next.mp3"></audio>
 
-<!-- ================= Game Setup ================= -->
+<!-- ================= Setup ================= -->
 <div id="setup" class="card">
 
   <h1>🎮 Image Guess</h1>
   <p style="text-align:center;">看圖估字</p>
 
-  <!-- Language & Content -->
+  <!-- 1. Language & Content -->
   <section>
     <h2>1. Language & Content</h2>
 
@@ -35,70 +34,59 @@
       <option value="">Select language first</option>
     </select>
 
-    <label>Categories (multiple)</label>
+    <label>Categories</label>
     <div id="categorySelect" class="checkbox-group"></div>
   </section>
 
-  <!-- Game Mode -->
+  <!-- 2. Game Mode -->
   <section>
     <h2>2. Game Mode</h2>
 
     <label>
       <input type="radio" name="gameMode" value="standard" checked>
-      Standard Mode
+      Standard Mode（一起玩）
     </label>
 
     <label>
       <input type="radio" name="gameMode" value="timeAttack">
-      Time Attack Mode
+      Time Attack Mode（輪流）
     </label>
   </section>
 
-  <!-- Standard Mode -->
+  <!-- Standard Mode Options -->
   <section id="standardOptions">
     <h3>Standard Mode Settings</h3>
 
-    <label>Questions per Round</label>
+    <label>Questions per Game</label>
     <label><input type="radio" name="qPerRound" value="5"> 5</label>
     <label><input type="radio" name="qPerRound" value="10" checked> 10</label>
     <label><input type="radio" name="qPerRound" value="15"> 15</label>
 
-    <label>Rounds</label>
-    <label><input type="radio" name="roundCount" value="1" checked> 1</label>
-    <label><input type="radio" name="roundCount" value="2"> 2</label>
-
     <label>
       <input type="checkbox" id="enablePerQuestionTimer">
-      Enable Time Rules
+      Enable Per-Question Timer
     </label>
 
     <div id="perQuestionTimerOptions" class="hidden">
       <label><input type="radio" name="perQuestionTime" value="15"> 15s</label>
-      <label><input type="radio" name="perQuestionTime" value="20"> 20s</label>
       <label><input type="radio" name="perQuestionTime" value="30" checked> 30s</label>
       <label><input type="radio" name="perQuestionTime" value="45"> 45s</label>
     </div>
   </section>
 
-  <!-- Time Attack Mode -->
+  <!-- Time Attack Options（目前只顯示，不影響 JS） -->
   <section id="timeAttackOptions" class="hidden">
     <h3>Time Attack Settings</h3>
-
-    <label>Total Time</label>
-    <label><input type="radio" name="totalTime" value="180"> 3 minutes</label>
-    <label><input type="radio" name="totalTime" value="300" checked> 5 minutes</label>
-    <label><input type="radio" name="totalTime" value="600"> 10 minutes</label>
+    <p>Each team plays in turn until time runs out.</p>
   </section>
 
-  <!-- Difficulty -->
+  <!-- 3. Difficulty -->
   <section>
     <h2>3. Difficulty</h2>
 
-    <p>Default: Auto Mixed</p>
-
     <label>
       <input type="checkbox" id="advancedDifficulty">
-      Advanced Mode
+      Advanced Difficulty
     </label>
 
     <div id="difficultyOptions" class="hidden">
@@ -109,7 +97,7 @@
     </div>
   </section>
 
-  <!-- Teams -->
+  <!-- 4. Teams -->
   <section>
     <h2>4. Teams</h2>
 
@@ -130,8 +118,7 @@
 <!-- ================= Summary ================= -->
 <div id="summary" class="card hidden">
 
-  <h1>✅ Game Summary</h1>
-
+  <h1>Game Summary</h1>
   <ul id="summaryList"></ul>
 
   <button id="backToSetupBtn">⬅ Back</button>
@@ -153,8 +140,6 @@
   <div id="teamButtons"></div>
 
   <button id="nextBtn">Next</button>
-
-  <div id="scoreboard" class="hidden"></div>
 </div>
 
 <script src="script.js"></script>
