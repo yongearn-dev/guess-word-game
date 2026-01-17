@@ -11,13 +11,14 @@
 <!-- ================= Audio ================= -->
 <audio id="bgm" src="audio/bgm.mp3" loop></audio>
 <audio id="sfxScore" src="audio/score.mp3"></audio>
+<audio id="sfxNext" src="audio/next.mp3"></audio>
 
 <!-- ================= Setup ================= -->
 <div id="setup" class="card">
 
   <h1>🎮 Image Guess</h1>
 
-<!-- Language & Content -->
+  <!-- Language & Content -->
   <section>
     <h2>1. Language & Content</h2>
 
@@ -36,10 +37,10 @@
     <label>Categories (multiple)</label>
     <div id="categorySelect" class="checkbox-group"></div>
   </section>
-  
+
   <!-- Game Mode -->
   <section>
-    <h2>1. Game Mode</h2>
+    <h2>2. Game Mode</h2>
 
     <label>
       <input type="radio" name="gameMode" value="standard" checked>
@@ -75,7 +76,7 @@
   </section>
 
   <!-- Time Attack Options -->
-  <section id="timeAttackOptions">
+  <section id="timeAttackOptions" class="hidden">
     <h3>Time Attack – 每隊總時間（必選）</h3>
 
     <label>
@@ -96,7 +97,7 @@
 
   <!-- Teams -->
   <section>
-    <h2>2. Teams</h2>
+    <h2>3. Teams</h2>
 
     <label>隊伍數量</label>
     <select id="teamSelect">
@@ -125,7 +126,7 @@
 <div id="game" class="hidden">
 
   <!-- Timer -->
-  <div id="timerBox" class="timer"></div>
+  <div id="timerBox" class="timer hidden"></div>
 
   <h2 id="questionTitle"></h2>
 
