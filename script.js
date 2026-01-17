@@ -274,7 +274,11 @@ function getNextQuestion() {
 }
 
 function loadQuestion() {
-  clearInterval(timerInterval);
+
+  // ❗ 只喺 Standard Mode 先清 timer
+  if (gameConfig.mode === "standard") {
+    clearInterval(timerInterval);
+  }
 
   if (
     gameConfig.mode === "standard" &&
