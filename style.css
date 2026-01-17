@@ -98,18 +98,6 @@ button:disabled {
 }
 
 /* ======================
-   Difficulty Warning
-====================== */
-#difficultyOptions label {
-  color: #c0392b;
-  font-weight: bold;
-}
-
-#difficultyOptions label::before {
-  content: "⚠️ ";
-}
-
-/* ======================
    Summary
 ====================== */
 #summary ul {
@@ -137,7 +125,7 @@ button:disabled {
 /* ======================
    Image Row
 ====================== */
-#imageRow {
+.image-row {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -145,7 +133,7 @@ button:disabled {
   margin-bottom: 20px;
 }
 
-#imageRow img {
+.image-row img {
   max-height: 150px;
   border-radius: 12px;
   box-shadow: 0 4px 0 #f2c94c;
@@ -154,7 +142,7 @@ button:disabled {
 /* ======================
    Answer
 ====================== */
-#answer {
+.answer {
   text-align: center;
   font-size: 28px;
   font-weight: bold;
@@ -165,14 +153,14 @@ button:disabled {
 /* ======================
    Team Buttons
 ====================== */
-#teamButtons {
+.team-buttons {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
   margin: 18px 0;
 }
 
-#teamButtons button {
+.team-buttons button {
   margin: 6px;
   font-size: 16px;
 }
