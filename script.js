@@ -27,11 +27,14 @@ const DIFFICULTY_SCORE = {
 let allQuestions = [];
 let availableQuestions = [];
 let usedQuestionIds = new Set();
+let roundQuestions = [];
+let currentQuestionIndex = 0;
+let currentRound = 1;
 
 let currentIndex = 0;
 let activeTeam = 0;
 let teamScores = [];
-
+let scoredTeamsThisQuestion = new Set();
 let timerInterval = null;
 let remainingTime = 0;
 
@@ -50,27 +53,6 @@ const gameConfig = {
   roundCount: 1,
   timerEnabled: false
 };
-
-/* ======================
-   DOM
-====================== */
-const setup = document.getElementById("setup");
-const summary = document.getElementById("summary");
-const game = document.getElementById("game");
-
-const toSummaryBtn = document.getElementById("toSummaryBtn");
-const backToSetupBtn = document.getElementById("backToSetupBtn");
-const startBtn = document.getElementById("startBtn");
-
-const summaryList = document.getElementById("summaryList");
-
-const questionTitle = document.getElementById("questionTitle");
-const imageRow = document.getElementById("imageRow");
-const answerBox = document.getElementById("answer");
-const teamButtons = document.getElementById("teamButtons");
-const toggleAnswerBtn = document.getElementById("toggleAnswerBtn");
-const nextBtn = document.getElementById("nextBtn");
-const timerBox = document.getElementById("timerBox");
 
 /* ======================
    Maps
@@ -100,6 +82,26 @@ const CATEGORY_MAP = {
   ]
 };
 
+/* ======================
+   DOM
+====================== */
+const setup = document.getElementById("setup");
+const summary = document.getElementById("summary");
+const game = document.getElementById("game");
+
+const toSummaryBtn = document.getElementById("toSummaryBtn");
+const backToSetupBtn = document.getElementById("backToSetupBtn");
+const startBtn = document.getElementById("startBtn");
+
+const summaryList = document.getElementById("summaryList");
+
+const questionTitle = document.getElementById("questionTitle");
+const imageRow = document.getElementById("imageRow");
+const answerBox = document.getElementById("answer");
+const teamButtons = document.getElementById("teamButtons");
+const toggleAnswerBtn = document.getElementById("toggleAnswerBtn");
+const nextBtn = document.getElementById("nextBtn");
+const timerBox = document.getElementById("timerBox");
 
 /* ======================
    Load Data
