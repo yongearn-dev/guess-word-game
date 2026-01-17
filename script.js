@@ -41,6 +41,9 @@ let currentIndex = 0;
 let teamScores = [];
 let activeTeam = 0;
 
+let currentRound = 1;
+let totalRounds = gameConfig.rounds;
+
 let timerInterval = null;
 let remainingTime = 0;
 let dataReady = false;
