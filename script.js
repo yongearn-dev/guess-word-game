@@ -39,17 +39,16 @@ let remainingTime = 0;
    Config
 ====================== */
 const gameConfig = {
-  mode: "standard",
-
+  gameType: "imageGuess",
+  language: "",
+  group: "",
+  categories: [],
   questionsPerRound: 10,
-
-  timer: {
-    enabled: false,        // standard only
-    perQuestion: 30,       // seconds
-    total: 300             // time attack seconds
-  },
-
-  teams: 3
+  advancedDifficulty: false,
+  extremeOnly: false,
+  teamCount: 1,
+  roundCount: 1,
+  timerEnabled: false
 };
 
 /* ======================
