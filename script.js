@@ -30,7 +30,6 @@ const DIFFICULTY_SCORE = {
 ====================== */
 let allQuestions = [];
 let availableQuestions = [];
-let usedQuestionIds = new Set();
 
 let currentIndex = 0;
 let activeTeam = 0;
@@ -119,12 +118,13 @@ fetch(SHEET_URL)
   });
 
 /* ======================
-   Language / Group / Category UI
+   Language / Group / Category
 ====================== */
 languageSelect.onchange = () => {
   gameConfig.language = languageSelect.value;
-  groupSelect.innerHTML = `<option value="">Select group</option>`;
   groupSelect.disabled = !gameConfig.language;
+  groupSelect.innerHTML = `<option value="">Select group</option>`;
+  categorySelect.innerHTML = "";
 
   (GROUP_MAP[gameConfig.language] || []).forEach(g => {
     const opt = document.createElement("option");
@@ -132,8 +132,6 @@ languageSelect.onchange = () => {
     opt.textContent = g.label;
     groupSelect.appendChild(opt);
   });
-
-  categorySelect.innerHTML = "";
 };
 
 groupSelect.onchange = () => {
@@ -142,10 +140,7 @@ groupSelect.onchange = () => {
 
   (CATEGORY_MAP[gameConfig.group] || []).forEach(c => {
     const label = document.createElement("label");
-    label.innerHTML = `
-      <input type="checkbox" value="${c.value}">
-      ${c.label}
-    `;
+    label.innerHTML = `<input type="checkbox" value="${c.value}"> ${c.label}`;
     label.querySelector("input").onchange = updateCategories;
     categorySelect.appendChild(label);
   });
@@ -158,7 +153,7 @@ function updateCategories() {
 }
 
 /* ======================
-   Filter Questions
+   Question Pool
 ====================== */
 function resetQuestionPool() {
   availableQuestions = allQuestions.filter(q => {
@@ -175,7 +170,6 @@ function resetQuestionPool() {
   if (!availableQuestions.length) {
     availableQuestions = [...allQuestions];
   }
-
   shuffle(availableQuestions);
 }
 
@@ -209,9 +203,6 @@ document.getElementById("teamSelect").onchange = e => {
   gameConfig.teams = Number(e.target.value);
 };
 
-/* ======================
-   Mode UI
-====================== */
 const standardOptions = document.getElementById("standardOptions");
 const timeAttackOptions = document.getElementById("timeAttackOptions");
 
@@ -232,13 +223,6 @@ updateModeUI();
 ====================== */
 toSummaryBtn.onclick = () => {
   summaryList.innerHTML = `
-    <li>Language: ${gameConfig.language || "ALL"}</li>
-    <li>Group: ${gameConfig.group || "ALL"}</li>
-    <li>Categories: ${
-      gameConfig.categories.length
-        ? gameConfig.categories.join(", ")
-        : "ALL"
-    }</li>
     <li>Mode: ${gameConfig.mode}</li>
     <li>Teams: ${gameConfig.teams}</li>
   `;
@@ -254,19 +238,18 @@ startBtn.onclick = () => {
   teamScores = new Array(gameConfig.teams).fill(0);
   activeTeam = 0;
   currentIndex = 0;
-  usedQuestionIds.clear();
   resetQuestionPool();
 
   summary.classList.add("hidden");
   game.classList.remove("hidden");
 
   gameConfig.mode === "timeAttack"
-    ? startTimeAttackTeam()
+    ? waitForNextTeam()
     : loadQuestion();
 };
 
 /* ======================
-   Question Logic
+   Questions
 ====================== */
 function getNextQuestion() {
   if (!availableQuestions.length) resetQuestionPool();
@@ -274,11 +257,7 @@ function getNextQuestion() {
 }
 
 function loadQuestion() {
-
-  // ❗ 只喺 Standard Mode 先清 timer
-  if (gameConfig.mode === "standard") {
-    clearInterval(timerInterval);
-  }
+  if (gameConfig.mode === "standard") clearInterval(timerInterval);
 
   if (
     gameConfig.mode === "standard" &&
@@ -311,22 +290,23 @@ function loadQuestion() {
 }
 
 /* ======================
-   Timers / Score / End
+   Time Attack Flow
 ====================== */
-/*（以下與你上一版完全相同，未改，為節省篇幅我已保留原行為）*/
+function waitForNextTeam() {
+  clearInterval(timerInterval);
 
-function startPerQuestionTimer() {
-  remainingTime = gameConfig.timer.perQuestion;
-  timerBox.classList.remove("hidden", "warning");
-  timerInterval = setInterval(() => {
-    remainingTime--;
-    timerBox.textContent = `⏱ ${remainingTime}`;
-    if (remainingTime <= 5) timerBox.classList.add("warning");
-    if (remainingTime <= 0) {
-      clearInterval(timerInterval);
-      answerBox.classList.remove("hidden");
-    }
-  }, 1000);
+  questionTitle.textContent = `Team ${activeTeam + 1} 準備`;
+  imageRow.innerHTML = "";
+  answerBox.classList.add("hidden");
+  teamButtons.innerHTML = "";
+  timerBox.classList.add("hidden");
+
+  nextBtn.textContent = `▶ Start Team ${activeTeam + 1}`;
+  nextBtn.onclick = () => {
+    nextBtn.textContent = "Next ▶";
+    nextBtn.onclick = () => loadQuestion();
+    startTimeAttackTeam();
+  };
 }
 
 function startTimeAttackTeam() {
@@ -340,24 +320,43 @@ function startTotalTimer() {
   clearInterval(timerInterval);
   remainingTime = gameConfig.timer.total;
   timerBox.classList.remove("hidden", "warning");
+
   timerInterval = setInterval(() => {
     remainingTime--;
     timerBox.textContent = `⏱ ${Math.floor(remainingTime / 60)}:${String(
       remainingTime % 60
     ).padStart(2, "0")}`;
+
     if (remainingTime <= 10) timerBox.classList.add("warning");
+
     if (remainingTime <= 0) {
       clearInterval(timerInterval);
       activeTeam++;
       activeTeam >= gameConfig.teams
         ? showEndScreen()
-        : startTimeAttackTeam();
+        : waitForNextTeam();
     }
   }, 1000);
 }
 
+/* ======================
+   Scoring
+====================== */
 function renderScoreButtons(diff) {
   teamButtons.innerHTML = "";
+
+  if (gameConfig.mode === "timeAttack") {
+    const i = activeTeam;
+    const btn = document.createElement("button");
+    btn.textContent = `Team ${i + 1} +${DIFFICULTY_SCORE[diff]}`;
+    btn.onclick = () => {
+      teamScores[i] += DIFFICULTY_SCORE[diff];
+      sfxScore?.play();
+    };
+    teamButtons.appendChild(btn);
+    return;
+  }
+
   for (let i = 0; i < gameConfig.teams; i++) {
     const btn = document.createElement("button");
     btn.textContent = `Team ${i + 1} +${DIFFICULTY_SCORE[diff]}`;
@@ -369,9 +368,15 @@ function renderScoreButtons(diff) {
   }
 }
 
+/* ======================
+   Controls
+====================== */
 nextBtn.onclick = () => loadQuestion();
 toggleAnswerBtn.onclick = () => answerBox.classList.remove("hidden");
 
+/* ======================
+   End
+====================== */
 function showEndScreen() {
   clearInterval(timerInterval);
   game.classList.add("hidden");
@@ -390,6 +395,9 @@ function showEndScreen() {
   startBtn.onclick = () => location.reload();
 }
 
+/* ======================
+   Utils
+====================== */
 function shuffle(a) {
   for (let i = a.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
