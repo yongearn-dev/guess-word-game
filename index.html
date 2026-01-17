@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-HK">
 <head>
   <meta charset="UTF-8" />
-  <title>🎮 Image Guess</title>
+  <title>🎮 Image Guess Game</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 
-<body class="theme-cartoon">
+<body>
 
 <!-- ================= Audio ================= -->
 <audio id="bgm" src="audio/bgm.mp3" loop></audio>
@@ -16,31 +16,10 @@
 <div id="setup" class="card">
 
   <h1>🎮 Image Guess</h1>
-  <p style="text-align:center;">看圖估字</p>
 
-  <!-- 1. Language & Content -->
+  <!-- Game Mode -->
   <section>
-    <h2>1. Language & Content</h2>
-
-    <label>Language</label>
-    <select id="languageSelect">
-      <option value="">Select language</option>
-      <option value="zh">中文</option>
-      <option value="th">ไทย</option>
-    </select>
-
-    <label>Content Group</label>
-    <select id="groupSelect" disabled>
-      <option value="">Select language first</option>
-    </select>
-
-    <label>Categories</label>
-    <div id="categorySelect" class="checkbox-group"></div>
-  </section>
-
-  <!-- 2. Game Mode -->
-  <section>
-    <h2>2. Game Mode</h2>
+    <h2>1. Game Mode</h2>
 
     <label>
       <input type="radio" name="gameMode" value="standard" checked>
@@ -49,59 +28,57 @@
 
     <label>
       <input type="radio" name="gameMode" value="timeAttack">
-      Time Attack Mode（輪流）
+      Time Attack Mode（輪流限時）
     </label>
   </section>
 
   <!-- Standard Mode Options -->
   <section id="standardOptions">
-    <h3>Standard Mode Settings</h3>
-
-    <label>Questions per Game</label>
-    <label><input type="radio" name="qPerRound" value="5"> 5</label>
-    <label><input type="radio" name="qPerRound" value="10" checked> 10</label>
-    <label><input type="radio" name="qPerRound" value="15"> 15</label>
+    <h3>Standard Mode – Time Rules（可選）</h3>
 
     <label>
       <input type="checkbox" id="enablePerQuestionTimer">
-      Enable Per-Question Timer
+      啟用每題限時
     </label>
 
-    <div id="perQuestionTimerOptions" class="hidden">
-      <label><input type="radio" name="perQuestionTime" value="15"> 15s</label>
-      <label><input type="radio" name="perQuestionTime" value="30" checked> 30s</label>
-      <label><input type="radio" name="perQuestionTime" value="45"> 45s</label>
+    <div id="perQuestionTimerOptions">
+      <label><input type="radio" name="perQuestionTime" value="15"> 15 秒</label>
+      <label><input type="radio" name="perQuestionTime" value="20"> 20 秒</label>
+      <label><input type="radio" name="perQuestionTime" value="30" checked> 30 秒（預設）</label>
+      <label><input type="radio" name="perQuestionTime" value="45"> 45 秒</label>
     </div>
+
+    <h3>題目數量</h3>
+    <label><input type="radio" name="qPerRound" value="5"> 5</label>
+    <label><input type="radio" name="qPerRound" value="10" checked> 10</label>
+    <label><input type="radio" name="qPerRound" value="15"> 15</label>
   </section>
 
-  <!-- Time Attack Options（目前只顯示，不影響 JS） -->
-  <section id="timeAttackOptions" class="hidden">
-    <h3>Time Attack Settings</h3>
-    <p>Each team plays in turn until time runs out.</p>
-  </section>
-
-  <!-- 3. Difficulty -->
-  <section>
-    <h2>3. Difficulty</h2>
+  <!-- Time Attack Options -->
+  <section id="timeAttackOptions">
+    <h3>Time Attack – 每隊總時間（必選）</h3>
 
     <label>
-      <input type="checkbox" id="advancedDifficulty">
-      Advanced Difficulty
+      <input type="radio" name="totalTime" value="180">
+      3 分鐘
     </label>
 
-    <div id="difficultyOptions" class="hidden">
-      <label>
-        <input type="checkbox" id="extremeOnly">
-        Extreme Only ⚠️
-      </label>
-    </div>
+    <label>
+      <input type="radio" name="totalTime" value="300" checked>
+      5 分鐘（預設）
+    </label>
+
+    <label>
+      <input type="radio" name="totalTime" value="600">
+      10 分鐘
+    </label>
   </section>
 
-  <!-- 4. Teams -->
+  <!-- Teams -->
   <section>
-    <h2>4. Teams</h2>
+    <h2>2. Teams</h2>
 
-    <label>Team Count</label>
+    <label>隊伍數量</label>
     <select id="teamSelect">
       <option value="1">1</option>
       <option value="2">2</option>
@@ -117,7 +94,6 @@
 
 <!-- ================= Summary ================= -->
 <div id="summary" class="card hidden">
-
   <h1>Game Summary</h1>
   <ul id="summaryList"></ul>
 
@@ -128,18 +104,22 @@
 <!-- ================= Game Screen ================= -->
 <div id="game" class="hidden">
 
-  <div id="timerBox" class="timer hidden"></div>
+  <!-- Timer -->
+  <div id="timerBox" class="timer"></div>
 
   <h2 id="questionTitle"></h2>
 
-  <div id="imageRow"></div>
+  <!-- Images -->
+  <div id="imageRow" class="image-row"></div>
 
+  <!-- Answer -->
   <button id="toggleAnswerBtn">Show Answer</button>
-  <div id="answer" class="hidden"></div>
+  <div id="answer" class="answer hidden"></div>
 
-  <div id="teamButtons"></div>
+  <!-- Team Buttons -->
+  <div id="teamButtons" class="team-buttons"></div>
 
-  <button id="nextBtn">Next</button>
+  <button id="nextBtn">Next ▶</button>
 </div>
 
 <script src="script.js"></script>
