@@ -146,11 +146,10 @@ fetch(SHEET_URL)
 ====================== */
 languageSelect.onchange = () => {
   gameConfig.language = languageSelect.value;
-  gameConfig.group = "";
-  gameConfig.categories = [];
-
-  groupSelect.innerHTML = `<option value="">All</option>`;
+  groupSelect.disabled = !gameConfig.language;
+  groupSelect.innerHTML = `<option value="">Select group</option>`;
   categorySelect.innerHTML = "";
+  gameConfig.categories = [];
 
   if (!gameConfig.language) return;
 
@@ -164,8 +163,8 @@ languageSelect.onchange = () => {
 
 groupSelect.onchange = () => {
   gameConfig.group = groupSelect.value;
-  gameConfig.categories = [];
   categorySelect.innerHTML = "";
+  gameConfig.categories = [];
 
   if (!gameConfig.group) return;
 
@@ -205,6 +204,18 @@ enablePerQuestionTimer.onchange = () => {
 };
 
 /* ======================
+   Difficulty
+====================== */
+advancedDifficulty.onchange = () => {
+  gameConfig.advanced = advancedDifficulty.checked;
+  difficultyOptions.classList.toggle("hidden", !advancedDifficulty.checked);
+};
+
+extremeOnly.onchange = () => {
+  gameConfig.extremeOnly = extremeOnly.checked;
+};
+
+/* ======================
    Summary
 ====================== */
 toSummaryBtn.onclick = () => {
@@ -226,18 +237,29 @@ toSummaryBtn.onclick = () => {
   summary.classList.remove("hidden");
 };
 
+backToSetupBtn.onclick = () => {
+  summary.classList.add("hidden");
+  setup.classList.remove("hidden");
+};
+
 /* ======================
    Start Game
 ====================== */
 startBtn.onclick = () => {
-  if (!dataReady) {
-    alert("Loading questions...");
-    return;
-  }
+  bgm.currentTime = 0;
+  bgm.play().catch(() => {});
 
   teamScores = new Array(gameConfig.teams).fill(0);
-  activeTeam = 0;
-  startTeam();
+  usedIds.clear();
+  currentIndex = 0;
+
+  buildQuestionQueue();
+
+  summary.classList.add("hidden");
+  game.classList.remove("hidden");
+
+  if (gameConfig.mode === "timeAttack") startTotalTimer();
+  loadQuestion();
 };
 
 /* ======================
