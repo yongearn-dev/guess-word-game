@@ -1,224 +1,82 @@
-/* ======================
-   基本設定
-====================== */
 body {
-  font-family: "Comic Sans MS", system-ui, -apple-system;
+  font-family: "Comic Sans MS", system-ui;
   background: #fff7e6;
-  margin: 0;
-  padding: 0;
-  color: #333;
+}
+
+.card {
+  max-width: 900px;
+  margin: 30px auto;
+  padding: 24px;
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 6px 0 #f2c94c;
 }
 
 .hidden {
-  display: none !important;
+  display: none;
 }
 
 h1, h2 {
   text-align: center;
-  margin-top: 0;
 }
 
-h1 {
-  font-size: 34px;
+.section {
+  margin-top: 24px;
+  padding-top: 12px;
+  border-top: 2px dashed #f2c94c;
 }
 
-h2 {
-  font-size: 22px;
-  margin-bottom: 10px;
-}
-
-section {
-  margin-bottom: 26px;
-}
-
-/* ======================
-   表單元素
-====================== */
 label {
   display: block;
   margin-top: 10px;
-  font-size: 16px;
-  cursor: pointer;
-}
-
-input[type="radio"],
-input[type="checkbox"] {
-  margin-right: 6px;
-  transform: scale(1.1);
-}
-
-select {
-  margin-top: 8px;
-  padding: 8px 12px;
-  font-size: 16px;
-  border-radius: 10px;
-  border: 2px solid #f2c94c;
-  background: #fff;
-}
-
-/* ======================
-   卡片容器
-====================== */
-.card {
-  max-width: 900px;
-  margin: 30px auto;
-  padding: 26px 30px;
-  background: #ffffff;
-  border-radius: 22px;
-  box-shadow: 0 6px 0 #f2c94c;
-}
-
-/* ======================
-   按鈕
-====================== */
-button {
-  margin-top: 24px;
-  padding: 12px 26px;
   font-size: 18px;
-  border-radius: 16px;
+}
+
+.big-select {
+  width: 100%;
+  padding: 14px;
+  font-size: 20px;
+  border-radius: 14px;
+  border: 2px solid #f2c94c;
+  margin-top: 6px;
+}
+
+button {
+  margin-top: 20px;
+  padding: 12px 26px;
+  font-size: 20px;
+  border-radius: 14px;
   border: none;
   background: #f2c94c;
   cursor: pointer;
-  box-shadow: 0 4px 0 #e0b83d;
-  transition: transform 0.1s ease, opacity 0.1s ease;
-}
-
-button:hover {
-  transform: translateY(-1px);
-}
-
-button:active {
-  transform: translateY(2px);
-  box-shadow: 0 2px 0 #e0b83d;
 }
 
 button:disabled {
   opacity: 0.5;
-  cursor: not-allowed;
 }
 
-/* ======================
-   Checkbox 群組（題目分類）
-====================== */
-.checkbox-group {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-  gap: 10px 14px;
-  margin-top: 12px;
-}
-
-.checkbox-group label {
-  background: #fff3c4;
-  padding: 8px 12px;
-  border-radius: 12px;
-  box-shadow: 0 3px 0 #f4d35e;
-  text-align: center;
-  font-size: 15px;
-}
-
-/* ======================
-   Summary
-====================== */
-#summaryContent {
-  font-size: 18px;
-  line-height: 1.8;
-  background: #fff3c4;
-  padding: 18px 20px;
-  border-radius: 14px;
-  box-shadow: 0 4px 0 #f4d35e;
-}
-
-#summaryContent div {
-  margin-bottom: 6px;
-}
-
-/* ======================
-   遊戲畫面
-====================== */
-#game {
-  padding: 20px;
-}
-
-#questionTitle {
-  text-align: center;
-  font-size: 26px;
-  margin-bottom: 16px;
-}
-
-/* ======================
-   圖片 / 題目列
-====================== */
 #imageRow {
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-wrap: wrap;
-  font-size: 36px;
-  gap: 12px;
-  margin-bottom: 24px;
+  font-size: 32px;
+  gap: 10px;
 }
 
 #imageRow img {
   max-height: 150px;
-  border-radius: 14px;
-  box-shadow: 0 4px 0 #f2c94c;
-  background: #fff;
 }
 
-/* ======================
-   答案顯示
-====================== */
-#answer {
-  text-align: center;
-  font-size: 30px;
-  font-weight: bold;
-  margin: 18px 0;
-  color: #d35400;
-}
-
-/* ======================
-   組別按鈕
-====================== */
-#teamButtons {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  margin: 18px 0;
-}
-
-#teamButtons button {
-  margin: 8px;
-  font-size: 16px;
-  min-width: 90px;
-}
-
-/* ======================
-   排行榜
-====================== */
-#scoreboard {
-  max-width: 420px;
-  margin: 24px auto;
-  background: #fff3c4;
-  padding: 18px;
-  border-radius: 16px;
-  box-shadow: 0 4px 0 #f4d35e;
-  font-size: 18px;
-  line-height: 1.6;
-}
-
-/* ======================
-   計時器
-====================== */
 .timer {
   position: fixed;
   top: 16px;
   right: 20px;
-  font-size: 44px;
+  font-size: 42px;
   font-weight: bold;
   background: #000;
   color: #fff;
-  padding: 10px 20px;
-  border-radius: 16px;
+  padding: 10px 18px;
+  border-radius: 14px;
   z-index: 999;
 }
 
@@ -227,11 +85,33 @@ button:disabled {
   animation: pulse 1s infinite;
 }
 
-/* ======================
-   動畫
-====================== */
 @keyframes pulse {
   0% { transform: scale(1); }
   50% { transform: scale(1.08); }
   100% { transform: scale(1); }
+}
+
+/* 組別顏色 */
+.color-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.color-grid button {
+  height: 44px;
+  border-radius: 12px;
+  border: 3px solid transparent;
+}
+
+.color-grid button.selected {
+  border-color: #333;
+}
+
+/* 子選項 */
+.sub {
+  margin-top: 12px;
+  padding-left: 12px;
+  border-left: 4px solid #f2c94c;
 }
