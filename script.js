@@ -20,39 +20,94 @@ const IMAGE_BASE =
 const SHEET_URL =
   "https://opensheet.elk.sh/1nmgda-PSW0qNpEnT65HozbrbK4SPoOlfq3WlEIQSgf4/Sheet1";
 
-/* ======================
-   Game Config (Single Source)
-====================== */
-const gameConfig = {
-  gameType: "imageGuess",
-  language: "",
-  group: "",
-  categories: [],
-  questionsPerRound: 10,
-  advancedDifficulty: false,
-  extremeOnly: false,
-  playMode: "simultaneous",
-  teamCount: 1,
-  roundCount: 1,
-  scoreMode: "standard",
-  timerEnabled: false,
-  timerMode: "perQuestion"
+const DIFFICULTY_SCORE = {
+  easy: 1,
+  normal: 2,
+  hard: 3,
+  extreme: 5
+};
+
+const AUTO_DISTRIBUTION = {
+  5:   { easy: 1, normal: 3, hard: 1, extreme: 0 },
+  10:  { easy: 2, normal: 5, hard: 2, extreme: 1 },
+  15:  { easy: 3, normal: 7, hard: 3, extreme: 2 }
 };
 
 /* ======================
    State
 ====================== */
 let allQuestions = [];
-let usedQuestionIds = new Set();
-let roundQuestions = [];
-let currentQuestionIndex = 0;
-let currentRound = 1;
+let usedIds = new Set();
+let questionQueue = [];
+let currentIndex = 0;
 
 let teamScores = [];
-let scoredTeamsThisQuestion = new Set();
+let scoredThisQuestion = new Set();
 
-let timer = 0;
 let timerInterval = null;
+let remainingTime = 0;
+
+/* ======================
+   Config (single source)
+====================== */
+const gameConfig = {
+  language: "",
+  group: "",
+  categories: [],
+
+  mode: "standard", // standard | timeAttack
+
+  questionsPerRound: 10,
+  rounds: 1,
+
+  timer: {
+    enabled: false,
+    perQuestion: 30,
+    total: 300
+  },
+
+  advanced: false,
+  extremeOnly: false,
+
+  teams: 3
+};
+
+/* ======================
+   DOM
+====================== */
+const setup = document.getElementById("setup");
+const summary = document.getElementById("summary");
+const game = document.getElementById("game");
+
+const languageSelect = document.getElementById("languageSelect");
+const groupSelect = document.getElementById("groupSelect");
+const categorySelect = document.getElementById("categorySelect");
+
+const standardOptions = document.getElementById("standardOptions");
+const timeAttackOptions = document.getElementById("timeAttackOptions");
+
+const enablePerQuestionTimer = document.getElementById("enablePerQuestionTimer");
+const perQuestionTimerOptions = document.getElementById("perQuestionTimerOptions");
+
+const advancedDifficulty = document.getElementById("advancedDifficulty");
+const difficultyOptions = document.getElementById("difficultyOptions");
+const extremeOnly = document.getElementById("extremeOnly");
+
+const teamSelect = document.getElementById("teamSelect");
+
+const toSummaryBtn = document.getElementById("toSummaryBtn");
+const backToSetupBtn = document.getElementById("backToSetupBtn");
+const startBtn = document.getElementById("startBtn");
+
+const summaryList = document.getElementById("summaryList");
+
+const questionTitle = document.getElementById("questionTitle");
+const imageRow = document.getElementById("imageRow");
+const answerBox = document.getElementById("answer");
+const teamButtons = document.getElementById("teamButtons");
+const toggleAnswerBtn = document.getElementById("toggleAnswerBtn");
+const nextBtn = document.getElementById("nextBtn");
+const timerBox = document.getElementById("timerBox");
 
 /* ======================
    Maps
@@ -83,76 +138,38 @@ const CATEGORY_MAP = {
 };
 
 /* ======================
-   DOM
-====================== */
-const setup = document.getElementById("setup");
-const summary = document.getElementById("summary");
-const game = document.getElementById("game");
-
-const languageSelect = document.getElementById("languageSelect");
-const groupSelect = document.getElementById("groupSelect");
-const categorySelectBox = document.getElementById("categorySelect");
-
-const qPerRoundSelect = document.getElementById("qPerRoundSelect");
-const advancedDifficulty = document.getElementById("advancedDifficulty");
-const difficultyOptions = document.getElementById("difficultyOptions");
-const extremeOnly = document.getElementById("extremeOnly");
-
-const teamSelect = document.getElementById("teamSelect");
-const roundSelect = document.getElementById("roundSelect");
-
-const enableTimer = document.getElementById("enableTimer");
-const timerOptions = document.getElementById("timerOptions");
-
-const toSummaryBtn = document.getElementById("toSummaryBtn");
-const backToSetupBtn = document.getElementById("backToSetupBtn");
-const startBtn = document.getElementById("startBtn");
-
-const summaryList = document.getElementById("summaryList");
-
-const questionTitle = document.getElementById("questionTitle");
-const imageRow = document.getElementById("imageRow");
-const answerBox = document.getElementById("answer");
-const teamButtons = document.getElementById("teamButtons");
-const toggleAnswerBtn = document.getElementById("toggleAnswerBtn");
-const nextBtn = document.getElementById("nextBtn");
-const timerBox = document.getElementById("timerBox");
-
-/* ======================
    Init
 ====================== */
 fetch(SHEET_URL)
-  .then(res => res.json())
+  .then(r => r.json())
   .then(data => {
     allQuestions = data;
-    console.log("題庫載入完成:", data.length);
+    console.log("Questions loaded:", data.length);
   });
 
 /* ======================
    Language → Group
 ====================== */
-languageSelect.addEventListener("change", () => {
+languageSelect.onchange = () => {
   gameConfig.language = languageSelect.value;
-  groupSelect.innerHTML = `<option value="">選擇內容大類</option>`;
-  categorySelectBox.innerHTML = "";
   groupSelect.disabled = !gameConfig.language;
+  groupSelect.innerHTML = `<option value="">Select group</option>`;
+  categorySelect.innerHTML = "";
+  gameConfig.categories = [];
 
   if (!gameConfig.language) return;
 
   GROUP_MAP[gameConfig.language].forEach(g => {
-    const opt = document.createElement("option");
-    opt.value = g.value;
-    opt.textContent = g.label;
-    groupSelect.appendChild(opt);
+    const o = document.createElement("option");
+    o.value = g.value;
+    o.textContent = g.label;
+    groupSelect.appendChild(o);
   });
-});
+};
 
-/* ======================
-   Group → Categories (Multi)
-====================== */
-groupSelect.addEventListener("change", () => {
+groupSelect.onchange = () => {
   gameConfig.group = groupSelect.value;
-  categorySelectBox.innerHTML = "";
+  categorySelect.innerHTML = "";
   gameConfig.categories = [];
 
   if (!gameConfig.group) return;
@@ -162,27 +179,49 @@ groupSelect.addEventListener("change", () => {
     const cb = document.createElement("input");
     cb.type = "checkbox";
     cb.value = c.value;
-
     cb.onchange = () => {
-      if (cb.checked) {
-        gameConfig.categories.push(cb.value);
-      } else {
-        gameConfig.categories =
-          gameConfig.categories.filter(v => v !== cb.value);
-      }
+      if (cb.checked) gameConfig.categories.push(cb.value);
+      else gameConfig.categories =
+        gameConfig.categories.filter(v => v !== cb.value);
     };
-
     label.appendChild(cb);
     label.append(" " + c.label);
-    categorySelectBox.appendChild(label);
+    categorySelect.appendChild(label);
   });
+};
+
+/* ======================
+   Mode Switch
+====================== */
+document.querySelectorAll("input[name=gameMode]").forEach(r => {
+  r.onchange = () => {
+    gameConfig.mode = r.value;
+    standardOptions.classList.toggle("hidden", r.value !== "standard");
+    timeAttackOptions.classList.toggle("hidden", r.value !== "timeAttack");
+  };
+});
+
+/* ======================
+   Timers
+====================== */
+enablePerQuestionTimer.onchange = () => {
+  gameConfig.timer.enabled = enablePerQuestionTimer.checked;
+  perQuestionTimerOptions.classList.toggle("hidden", !enablePerQuestionTimer.checked);
+};
+
+document.querySelectorAll("input[name=perQuestionTime]").forEach(r => {
+  r.onchange = () => gameConfig.timer.perQuestion = Number(r.value);
+});
+
+document.querySelectorAll("input[name=totalTime]").forEach(r => {
+  r.onchange = () => gameConfig.timer.total = Number(r.value);
 });
 
 /* ======================
    Difficulty
 ====================== */
 advancedDifficulty.onchange = () => {
-  gameConfig.advancedDifficulty = advancedDifficulty.checked;
+  gameConfig.advanced = advancedDifficulty.checked;
   difficultyOptions.classList.toggle("hidden", !advancedDifficulty.checked);
 };
 
@@ -191,30 +230,25 @@ extremeOnly.onchange = () => {
 };
 
 /* ======================
-   Timer
-====================== */
-enableTimer.onchange = () => {
-  gameConfig.timerEnabled = enableTimer.checked;
-  timerOptions.classList.toggle("hidden", !enableTimer.checked);
-};
-
-/* ======================
    Summary
 ====================== */
 toSummaryBtn.onclick = () => {
-  gameConfig.questionsPerRound = Number(qPerRoundSelect.value);
-  gameConfig.teamCount = Number(teamSelect.value);
-  gameConfig.roundCount =
-    roundSelect.value === "custom" ? 1 : Number(roundSelect.value);
+  gameConfig.questionsPerRound =
+    Number(document.querySelector("input[name=qPerRound]:checked").value);
+  gameConfig.rounds =
+    Number(document.querySelector("input[name=roundCount]:checked").value);
+  gameConfig.teams = Number(teamSelect.value);
 
   summaryList.innerHTML = `
-    <li>🎮 遊戲類型：看圖估字</li>
-    <li>🌏 語言：${gameConfig.language}</li>
-    <li>📖 內容：${gameConfig.group}｜${gameConfig.categories.join(" + ")}</li>
-    <li>❓ 題數：${gameConfig.questionsPerRound}</li>
-    <li>⚖️ 難度：${gameConfig.extremeOnly ? "Extreme Only" : "混合"}</li>
-    <li>👥 組別：${gameConfig.teamCount}</li>
-    <li>⏱️ 計時：${gameConfig.timerEnabled ? "開" : "關"}</li>
+    <li>🎮 Image Guess</li>
+    <li>🌏 Language: ${gameConfig.language}</li>
+    <li>📖 Content: ${gameConfig.group} | ${gameConfig.categories.join(", ")}</li>
+    <li>❓ Questions: ${gameConfig.mode === "standard" ? gameConfig.questionsPerRound : "Unlimited"}</li>
+    <li>⚖️ Difficulty: ${gameConfig.extremeOnly ? "Extreme Only ⚠️" : "Mixed"}</li>
+    <li>👥 Teams: ${gameConfig.teams}</li>
+    <li>⏱️ Timer: ${gameConfig.mode === "timeAttack"
+      ? `${gameConfig.timer.total / 60} min`
+      : gameConfig.timer.enabled ? `${gameConfig.timer.perQuestion}s / question` : "Off"}</li>
   `;
 
   setup.classList.add("hidden");
@@ -233,120 +267,143 @@ startBtn.onclick = () => {
   bgm.currentTime = 0;
   bgm.play().catch(() => {});
 
-  teamScores = new Array(gameConfig.teamCount).fill(0);
-  usedQuestionIds.clear();
-  currentRound = 1;
+  teamScores = new Array(gameConfig.teams).fill(0);
+  usedIds.clear();
+  currentIndex = 0;
+
+  buildQuestionQueue();
 
   summary.classList.add("hidden");
   game.classList.remove("hidden");
 
-  startRound();
+  if (gameConfig.mode === "timeAttack") startTotalTimer();
+  loadQuestion();
 };
 
 /* ======================
-   Game Flow
+   Question Queue
 ====================== */
-function startRound() {
-  currentQuestionIndex = 0;
-  scoredTeamsThisQuestion.clear();
-
-  const pool = allQuestions.filter(q => {
-    if (usedQuestionIds.has(q.id)) return false;
+function buildQuestionQueue() {
+  let pool = allQuestions.filter(q => {
     if (q.language !== gameConfig.language) return false;
     if (q.group !== gameConfig.group) return false;
-    if (
-      gameConfig.categories.length &&
-      !gameConfig.categories.includes(q.category)
-    ) return false;
+    if (gameConfig.categories.length &&
+        !gameConfig.categories.includes(q.category)) return false;
     if (gameConfig.extremeOnly && q.difficulty !== "extreme") return false;
     return true;
   });
 
   shuffle(pool);
-  roundQuestions = pool.slice(0, gameConfig.questionsPerRound);
-  roundQuestions.forEach(q => usedQuestionIds.add(q.id));
 
-  loadQuestion();
-}
-
-function loadQuestion() {
-  const q = roundQuestions[currentQuestionIndex];
-  if (!q) return;
-
-  startTimer();
-  scoredTeamsThisQuestion.clear();
-
-  questionTitle.innerText =
-    `第 ${currentRound} 輪 · 第 ${currentQuestionIndex + 1} 題`;
-
-  imageRow.innerHTML = "";
-  ["img1", "img2", "img3", "img4"]
-    .map(k => q[k])
-    .filter(Boolean)
-    .forEach((name, i, arr) => {
-      const img = document.createElement("img");
-      img.src = IMAGE_BASE + name;
-      imageRow.appendChild(img);
-      if (i < arr.length - 1) {
-        imageRow.appendChild(document.createTextNode(" ＋ "));
-      }
-    });
-  imageRow.appendChild(document.createTextNode(" ＝？"));
-
-  answerBox.innerText = q.answer;
-  answerBox.classList.add("hidden");
-
-  renderTeams();
-}
-
-/* ======================
-   Timer
-====================== */
-function startTimer() {
-  clearInterval(timerInterval);
-
-  if (!gameConfig.timerEnabled) {
-    timerBox.classList.add("hidden");
+  if (gameConfig.mode === "timeAttack") {
+    questionQueue = pool;
     return;
   }
 
-  timer = 30;
-  timerBox.classList.remove("hidden", "warning");
-  timerBox.innerText = `⏱ ${timer}`;
+  const dist = AUTO_DISTRIBUTION[gameConfig.questionsPerRound];
+  questionQueue = [];
+
+  Object.keys(dist).forEach(diff => {
+    const subset = pool.filter(q => q.difficulty === diff).slice(0, dist[diff]);
+    questionQueue.push(...subset);
+  });
+
+  shuffle(questionQueue);
+}
+
+/* ======================
+   Load Question
+====================== */
+function loadQuestion() {
+  const q = questionQueue[currentIndex];
+  if (!q) {
+    endGame();
+    return;
+  }
+
+  scoredThisQuestion.clear();
+  answerBox.classList.add("hidden");
+
+  questionTitle.textContent = `Question ${currentIndex + 1}`;
+  imageRow.innerHTML = "";
+
+  ["img1","img2","img3","img4"]
+    .map(k => q[k])
+    .filter(Boolean)
+    .forEach(name => {
+      const img = document.createElement("img");
+      img.src = IMAGE_BASE + name;
+      imageRow.appendChild(img);
+    });
+
+  answerBox.textContent = q.answer;
+
+  renderTeams(q.difficulty);
+
+  if (gameConfig.mode === "standard" && gameConfig.timer.enabled) {
+    startPerQuestionTimer();
+  }
+}
+
+/* ======================
+   Teams / Scoring
+====================== */
+function renderTeams(difficulty) {
+  teamButtons.innerHTML = "";
+  const score = DIFFICULTY_SCORE[difficulty];
+
+  teamScores.forEach((s, i) => {
+    const btn = document.createElement("button");
+    btn.textContent = `Team ${i + 1} +${score} (${s})`;
+    btn.disabled = scoredThisQuestion.has(i);
+
+    btn.onclick = () => {
+      if (scoredThisQuestion.has(i)) return;
+      teamScores[i] += score;
+      scoredThisQuestion.add(i);
+      sfxScore.currentTime = 0;
+      sfxScore.play();
+      renderTeams(difficulty);
+    };
+
+    teamButtons.appendChild(btn);
+  });
+}
+
+/* ======================
+   Timers
+====================== */
+function startPerQuestionTimer() {
+  clearInterval(timerInterval);
+  remainingTime = gameConfig.timer.perQuestion;
+  timerBox.classList.remove("hidden","warning");
+  timerBox.textContent = `⏱ ${remainingTime}`;
 
   timerInterval = setInterval(() => {
-    timer--;
-    timerBox.innerText = `⏱ ${timer}`;
-    if (timer <= 5) timerBox.classList.add("warning");
-    if (timer <= 0) {
+    remainingTime--;
+    timerBox.textContent = `⏱ ${remainingTime}`;
+    if (remainingTime <= 5) timerBox.classList.add("warning");
+    if (remainingTime <= 0) {
       clearInterval(timerInterval);
       answerBox.classList.remove("hidden");
     }
   }, 1000);
 }
 
-/* ======================
-   Teams
-====================== */
-function renderTeams() {
-  teamButtons.innerHTML = "";
+function startTotalTimer() {
+  clearInterval(timerInterval);
+  remainingTime = gameConfig.timer.total;
+  timerBox.classList.remove("hidden","warning");
 
-  for (let i = 0; i < gameConfig.teamCount; i++) {
-    const btn = document.createElement("button");
-    btn.innerText = `第 ${i + 1} 組 ＋1（${teamScores[i]}）`;
-    btn.disabled = scoredTeamsThisQuestion.has(i);
-
-    btn.onclick = () => {
-      if (scoredTeamsThisQuestion.has(i)) return;
-      teamScores[i]++;
-      scoredTeamsThisQuestion.add(i);
-      sfxScore.currentTime = 0;
-      sfxScore.play();
-      renderTeams();
-    };
-
-    teamButtons.appendChild(btn);
-  }
+  timerInterval = setInterval(() => {
+    remainingTime--;
+    timerBox.textContent = `⏱ ${Math.floor(remainingTime / 60)}:${String(remainingTime % 60).padStart(2,"0")}`;
+    if (remainingTime <= 10) timerBox.classList.add("warning");
+    if (remainingTime <= 0) {
+      clearInterval(timerInterval);
+      endGame();
+    }
+  }, 1000);
 }
 
 /* ======================
@@ -359,21 +416,19 @@ toggleAnswerBtn.onclick = () => {
 nextBtn.onclick = () => {
   sfxNext.currentTime = 0;
   sfxNext.play();
-
-  currentQuestionIndex++;
-  if (currentQuestionIndex >= roundQuestions.length) {
-    currentRound++;
-    if (currentRound > gameConfig.roundCount) {
-      alert("🎉 遊戲完成");
-      game.classList.add("hidden");
-      setup.classList.remove("hidden");
-    } else {
-      startRound();
-    }
-  } else {
-    loadQuestion();
-  }
+  currentIndex++;
+  loadQuestion();
 };
+
+/* ======================
+   End Game
+====================== */
+function endGame() {
+  clearInterval(timerInterval);
+  alert("Game Over");
+  game.classList.add("hidden");
+  setup.classList.remove("hidden");
+}
 
 /* ======================
    Utils
@@ -384,4 +439,3 @@ function shuffle(arr) {
     [arr[i], arr[j]] = [arr[j], arr[i]];
   }
 }
-
