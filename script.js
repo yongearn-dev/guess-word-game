@@ -256,28 +256,33 @@ function getNextQuestion() {
   return availableQuestions.shift();
 }
 
-function loadQuestion() {
-  if (gameConfig.mode === "standard") clearInterval(timerInterval);
+imageRow.innerHTML = "";
 
-  if (
-    gameConfig.mode === "standard" &&
-    currentIndex >= gameConfig.questionsPerRound
-  ) {
-    return showEndScreen();
+const images = ["img1", "img2", "img3", "img4"]
+  .map(k => currentQuestion[k])
+  .filter(Boolean);
+
+images.forEach((filename, index) => {
+  // 圖片
+  const img = document.createElement("img");
+  img.src = IMAGE_BASE + filename;
+  imageRow.appendChild(img);
+
+  // 圖片之間加 "+"
+  if (index < images.length - 1) {
+    const plus = document.createElement("span");
+    plus.className = "operator";
+    plus.textContent = "＋";
+    imageRow.appendChild(plus);
   }
+});
 
-  currentQuestion = getNextQuestion();
-  currentIndex++;
+// 最後加 "= ?"
+const equal = document.createElement("span");
+equal.className = "operator result";
+equal.textContent = "＝ ?";
+imageRow.appendChild(equal);
 
-  imageRow.innerHTML = "";
-  ["img1", "img2", "img3", "img4"]
-    .map(k => currentQuestion[k])
-    .filter(Boolean)
-    .forEach(n => {
-      const img = document.createElement("img");
-      img.src = IMAGE_BASE + n;
-      imageRow.appendChild(img);
-    });
 
   answerBox.textContent = currentQuestion.answer;
   answerBox.classList.add("hidden");
