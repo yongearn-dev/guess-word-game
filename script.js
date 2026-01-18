@@ -256,6 +256,12 @@ function getNextQuestion() {
   return availableQuestions.shift();
 }
 
+function loadQuestion() { 
+   if (gameConfig.mode === "standard") 
+      clearInterval(timerInterval); 
+   if ( gameConfig.mode === "standard" && currentIndex >= gameConfig.questionsPerRound ) 
+   { return showEndScreen(); } currentQuestion = getNextQuestion(); currentIndex++;
+
 imageRow.innerHTML = "";
 
 const images = ["img1", "img2", "img3", "img4"]
