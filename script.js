@@ -37,6 +37,9 @@ let teamScores = [];
 let timerInterval = null;
 let remainingTime = 0;
 let currentQuestion = null;
+let hintUsed = false;
+let currentMaxScore = 0;
+
 
 /* ======================
    Config
@@ -71,6 +74,8 @@ const summaryList = document.getElementById("summaryList");
 const questionTitle = document.getElementById("questionTitle");
 const imageRow = document.getElementById("imageRow");
 const answerBox = document.getElementById("answer");
+const hintBox = document.getElementById("hint");
+const toggleHintBtn = document.getElementById("toggleHintBtn");
 const teamButtons = document.getElementById("teamButtons");
 const toggleAnswerBtn = document.getElementById("toggleAnswerBtn");
 const nextBtn = document.getElementById("nextBtn");
@@ -261,6 +266,14 @@ function loadQuestion() {
       clearInterval(timerInterval); 
    if ( gameConfig.mode === "standard" && currentIndex >= gameConfig.questionsPerRound ) 
    { return showEndScreen(); } currentQuestion = getNextQuestion(); currentIndex++;
+   // ===== 提示狀態 reset =====
+hintUsed = false;
+currentMaxScore = DIFFICULTY_SCORE[currentQuestion.difficulty] || 0;
+
+hintBox.classList.add("hidden");
+hintBox.textContent = "";
+toggleHintBtn.classList.remove("hidden");
+
 
 imageRow.innerHTML = "";
 
@@ -361,7 +374,7 @@ function renderScoreButtons(diff) {
     const btn = document.createElement("button");
     btn.textContent = `Team ${i + 1} +${DIFFICULTY_SCORE[diff]}`;
     btn.onclick = () => {
-      teamScores[i] += DIFFICULTY_SCORE[diff];
+      teamScores[i] += currentMaxScore;
       sfxScore?.play();
     };
     teamButtons.appendChild(btn);
@@ -405,6 +418,23 @@ function showEndScreen() {
   startBtn.textContent = "⬅ Back to Home";
   startBtn.onclick = () => location.reload();
 }
+
+toggleHintBtn.onclick = () => {
+  if (!currentQuestion || !currentQuestion.note) return;
+
+  hintBox.textContent = currentQuestion.note;
+  hintBox.classList.remove("hidden");
+
+  // 只在第一次開提示時扣分
+  if (!hintUsed) {
+    currentMaxScore = Math.max(0, currentMaxScore - 1);
+    hintUsed = true;
+
+    // 重新 render 加分按鈕（顯示新分值）
+    renderScoreButtons(currentQuestion.difficulty);
+  }
+};
+
 
 /* ======================
    Utils
