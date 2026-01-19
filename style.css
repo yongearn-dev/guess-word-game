@@ -125,11 +125,21 @@ button:disabled {
 /* ======================
    Image Row
 ====================== */
+.image-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+}
+
 .image-row img {
   width: 150px;
   height: 150px;
   object-fit: contain;
   flex-shrink: 0;
+  border-radius: 12px;
+  box-shadow: 0 4px 0 #f2c94c;
 }
 
 .operator {
