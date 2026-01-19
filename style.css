@@ -129,14 +129,17 @@ button:disabled {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
-  margin-bottom: 20px;
+  gap: 8px;
 }
 
-.image-row img {
-  max-height: 150px;
-  border-radius: 12px;
-  box-shadow: 0 4px 0 #f2c94c;
+.operator {
+  font-size: 32px;
+  font-weight: bold;
+  margin: 0 4px;
+}
+
+.operator.result {
+  margin-left: 12px;
 }
 
 /* ======================
