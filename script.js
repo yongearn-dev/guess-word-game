@@ -369,12 +369,17 @@ function startTotalTimer() {
 function renderScoreButtons(diff) {
   teamButtons.innerHTML = "";
 
+ // 分數為 0 → 顯示但不可加分
+  const score = currentMaxScore;
+
   if (gameConfig.mode === "timeAttack") {
     const i = activeTeam;
     const btn = document.createElement("button");
-    btn.textContent = `Team ${i + 1} +${DIFFICULTY_SCORE[diff]}`;
+    btn.textContent = `Team ${i + 1} +${score}`;
+    btn.disabled = score === 0;
     btn.onclick = () => {
-      teamScores[i] += currentMaxScore;
+      if (score <= 0) return;
+      teamScores[i] += score;
       sfxScore?.play();
     };
     teamButtons.appendChild(btn);
@@ -383,9 +388,11 @@ function renderScoreButtons(diff) {
 
   for (let i = 0; i < gameConfig.teams; i++) {
     const btn = document.createElement("button");
-    btn.textContent = `Team ${i + 1} +${DIFFICULTY_SCORE[diff]}`;
+    btn.textContent = `Team ${i + 1} +${score}`;
+    btn.disabled = score === 0;
     btn.onclick = () => {
-      teamScores[i] += DIFFICULTY_SCORE[diff];
+      if (score <= 0) return;
+      teamScores[i] += score;
       sfxScore?.play();
     };
     teamButtons.appendChild(btn);
